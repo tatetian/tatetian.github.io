@@ -34,17 +34,6 @@
 html {
   font-family: "PT Sans", Helvetica, Arial, sans-serif;
 }
-@media (min-width: 48em) {
-  html {
-    font-size: 16px;
-  }
-}
-@media (min-width: 58em) {
-  html {
-    font-size: 20px;
-  }
-}
-
 
 /*
  * Sidebar
@@ -54,20 +43,33 @@ html {
  */
 
 .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    overflow: hidden;
+    transition: padding 0.6s ease-in-out;
+    
   text-align: center;
   padding: 2rem 1rem;
   color: rgba(255,255,255,.5);
   background-color: #202020;
 }
-@media (min-width: 48em) {
-  .sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    width: 18rem;
-    text-align: left;
-  }
+
+.sidebar.closed {
+    padding: 0.5em 1rem;
+}
+
+.sidebar-other {
+    padding-top: 1rem;
+    max-height: 20rem;
+    overflow: hidden;
+    transition: max-height 0.6s, padding 0.6s ease-in-out;
+}
+
+.closed .sidebar-other {
+    padding-top: 0rem;
+    max-height: 0rem;
 }
 
 /* Sidebar links */
@@ -75,12 +77,16 @@ html {
   color: #fff;
 }
 
-/* About section */
-.sidebar-about h1 {
+.sidebar-logo h1 {
   color: #fff;
-  margin-top: 0;
+  margin: 0 0;
   font-family: "Abril Fatface", serif;
   font-size: 3.25rem;
+  transition: font-size 0.6s ease-in-out;
+}
+
+.closed .sidebar-logo h1 {
+  font-size: 1.5rem;
 }
 
 /* Sidebar nav */
@@ -89,7 +95,7 @@ html {
 }
 .sidebar-nav-item {
   display: block;
-  line-height: 1.75;
+  line-height: 1.75 ease-in-out;
 }
 a.sidebar-nav-item:hover,
 a.sidebar-nav-item:focus {
@@ -99,22 +105,6 @@ a.sidebar-nav-item:focus {
   font-weight: bold;
 }
 
-/* Sticky sidebar
- *
- * Add the `sidebar-sticky` class to the sidebar's container to affix it the
- * contents to the bottom of the sidebar in tablets and up.
- */
-
-@media (min-width: 48em) {
-  .sidebar-sticky {
-    position: absolute;
-    right:  1rem;
-    bottom: 1rem;
-    left:   1rem;
-  }
-}
-
-
 /* Container
  *
  * Align the contents of the site above the proper threshold with some margin-fu
@@ -122,25 +112,10 @@ a.sidebar-nav-item:focus {
  */
 
 .content {
-  padding-top:    4rem;
+  padding-top:    6rem;
   padding-bottom: 4rem;
-}
-
-@media (min-width: 48em) {
-  .content {
     max-width: 38rem;
-    margin-left: 20rem;
-    margin-right: 2rem;
-  }
 }
-
-@media (min-width: 64em) {
-  .content {
-    margin-left: 22rem;
-    margin-right: 4rem;
-  }
-}
-
 
 /*
  * Reverse layout
