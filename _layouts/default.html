@@ -10,6 +10,16 @@
     <div class="content container">
       {{ content }}
     </div>
-
+    
+    <script type="text/javascript">
+        var logo = document.getElementsByClassName('sidebar-logo')[0]; 
+        logo.addEventListener('click', function(event) {
+        var topbar = document.getElementsByClassName('sidebar')[0];
+            if (topbar.className == 'sidebar closed')
+                topbar.className = 'sidebar';
+            else
+                topbar.className = 'sidebar closed';
+       });
+    </script>
   </body>
 </html>

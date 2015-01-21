@@ -32,7 +32,8 @@
  */
 
 html {
-  font-family: "PT Sans", Helvetica, Arial, sans-serif;
+  /* Use the nicest Helvestica. Available on Mac. */
+  font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif; 
 }
 
 /*
@@ -48,7 +49,8 @@ html {
     left: 0;
     right: 0;
     overflow: hidden;
-    transition: padding 0.6s ease-in-out;
+    transition: padding 0.6s ;
+    z-index: 100;
     
   text-align: center;
   padding: 2rem 1rem;
@@ -64,7 +66,7 @@ html {
     padding-top: 1rem;
     max-height: 20rem;
     overflow: hidden;
-    transition: max-height 0.6s, padding 0.6s ease-in-out;
+    transition: max-height 0.6s, padding 0.6s ;
 }
 
 .closed .sidebar-other {
@@ -77,12 +79,18 @@ html {
   color: #fff;
 }
 
+.sidebar-logo {
+    cursor: pointer;
+}
+
 .sidebar-logo h1 {
   color: #fff;
   margin: 0 0;
-  font-family: "Abril Fatface", serif;
+  /*font-family: "Abril Fatface", serif;*/
+  font-family: "Lubalin Graph", serif;
+  font-weight: bold;
   font-size: 3.25rem;
-  transition: font-size 0.6s ease-in-out;
+  transition: font-size 0.6s ;
 }
 
 .closed .sidebar-logo h1 {
@@ -95,7 +103,7 @@ html {
 }
 .sidebar-nav-item {
   display: block;
-  line-height: 1.75 ease-in-out;
+  line-height: 1.75 ;
 }
 a.sidebar-nav-item:hover,
 a.sidebar-nav-item:focus {
@@ -112,7 +120,8 @@ a.sidebar-nav-item:focus {
  */
 
 .content {
-  padding-top:    6rem;
+    margin-top: 0.8rem;
+  padding-top:    4rem;
   padding-bottom: 4rem;
     max-width: 38rem;
 }
