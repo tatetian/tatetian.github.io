@@ -66,9 +66,7 @@ bombarding my mind with doubts: "Is your English writing good enough? Can your
 posts make any difference to the readers? What if you blunder and make a fool
 of yourself?”
 
-...
-
-“But, so what?”  my rational respond, “Yes, I am likely to suck at first, but
+“But, so what?” the other half of me responds, “Yes, I am likely to suck at first, but
 over time I will get better, *definitely*. ”
 
 Blogging is a fullfilment to the need of expressing myself, and maybe more
