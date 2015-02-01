@@ -34,7 +34,7 @@ least in the top computer science department of the most prestigious university
 in China. We are well trained on solving problems on our own, but not sharing
 results with others. Very few of us bother to share our knowledge and insights
 publicly, like writing a technical blog. Maybe it’s the common pitfall of
-engineering eductions. Maybe it’s the shyness of Chinese people. Whatever the
+engineering educations. Maybe it’s the shyness of Chinese people. Whatever the
 reasons, most of us are just too lazy, too shy or too stupid, to show the best
 of our expertise.
 
@@ -60,7 +60,7 @@ For the curse of perfectionist.
 When I was younger, I often claimed myself as a perfectionist,
 *proudly*. To me, perfectionism used to be equivalent to striving for
 excellence. Now that I am more mature, I know that perfectionism can be
-detrimental: overly high standards, harsh self-critism, and excessive concerns
+detrimental: overly high standards, harsh self-criticism, and excessive concerns
 regarding others’ evaluation. It is this dark side of my personality that is
 bombarding my mind with doubts: "Is your English writing good enough? Can your
 posts make any difference to the readers? What if you blunder and make a fool
@@ -69,7 +69,7 @@ of yourself?”
 “But, so what?” the other half of me responds, “Yes, I am likely to suck at first, but
 over time I will get better, *definitely*. ”
 
-Blogging is a fullfilment to the need of expressing myself, and maybe more
+Blogging is a fullfillment to the need of expressing myself, and maybe more
 importantly, a treatment to my perfectionism.
 
 ##Final thoughts
@@ -83,7 +83,7 @@ which may shed more light on this topic for you:
 * [Josh Davis](https://joshldavis.com)’s [The Beginning of a Beautiful Blogship](https://joshldavis.com/2013/05/11/beginning-of-a-beautiful-blogship/);
 * [9 Reasons You Should Blog](http://www.forbes.com/sites/danreich/2011/10/15/9-reasons-you-should-blog/) on Forbes.
 
-In the end, I want make use of an phychological trick called [early
+In the end, I want make use of an pyschological trick called [early
 commitment](http://en.wikipedia.org/wiki/Lock-in_(decision-making)): to my dear
 readers, I humbly promise to publish my blog posts at least twice a month. I
 would like your feedbacks. Thanks for reading!
