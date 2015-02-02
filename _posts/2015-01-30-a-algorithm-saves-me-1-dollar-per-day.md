@@ -26,7 +26,7 @@ AI that solves the game automatically. The result is
 With SolveThis.js, you can solve the puzzle interactively or let the computer 
 automatically find the solution with minimal steps. Try the demo below.
 
-<p data-height="640" data-theme-id="11840" data-slug-hash="GgvYqw" 
+<p data-height="620" data-theme-id="11840" data-slug-hash="GgvYqw" 
 data-default-tab="result" data-user="tatetian" class='codepen'>See the Pen <a 
 href='http://codepen.io/tatetian/pen/GgvYqw/'>SolveThis.js</a> by Tate Tian (<a 
 href='http://codepen.io/tatetian'>@tatetian</a>) on <a 
@@ -171,7 +171,7 @@ obstacles to goal positions.
 
 To give a concrete example, consider a SolveThis+ problem as below (and for the 
 convenience of illustration, a smaller board of size 4x4 is used):
-![A simpler problem]({{ site.baseurl }}public/img/SolveThis/simpler-problem.png "A simpler problem")
+![A simpler problem]({{ site.baseurl }}public/img/SolveThis/simpler-problem.png  "A simpler problem")
 
 According to the definition, its $$1$$-block versions are: 
 ![A 1-block version of the simpler problem]({{ site.baseurl }}public/img/SolveThis/simpler-problem-1-block.png "A 1-block version of the simpler problem")
