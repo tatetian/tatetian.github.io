@@ -15,7 +15,7 @@ developer:
 - Collaborate with artists to invent an interactive installation? [Look]().
 
 My motto as a hacker is [*make something useful*](http://www.paulgraham.com/ideas.html).
-Fine. I lied. I constantly make stuffs for fun. LOL.
+Well, actually, I can't stop making stuffs just for fun. LOL.
 
 In my spare time, I play finger-style guitar. And I am passionate about Ultimate 
 Frisbee. I have the privilege of being the captain of the varsity Ultimate 
