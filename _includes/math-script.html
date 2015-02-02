@@ -1,7 +1,12 @@
 <script type="text/javascript">
     var allScripts = document.getElementsByTagName('script');
+    var noUpdateCopy = [];
     for (var si in allScripts) {
-        var s = allScripts[si];
+        noUpdateCopy.push(allScripts[si]);
+    }
+
+    for (var si in noUpdateCopy) {
+        var s = noUpdateCopy[si];
         if (!s.type || s.type.indexOf("math/tex") < 0) continue;
 
         var tex = s.innerText;
