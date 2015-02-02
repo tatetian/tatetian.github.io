@@ -1,0 +1,23 @@
+<script type="text/javascript">
+    var allScripts = document.getElementsByTagName('script');
+    for (var si in allScripts) {
+        var s = allScripts[si];
+        if (!s.type || s.type.indexOf("math/tex") < 0) continue;
+
+        var tex = s.innerText;
+        var inline = s.type.indexOf("mode=display") < 0;
+        var renderedHtml;
+        console.debug(tex);
+        if (inline) {
+            renderedHtml = '<span class="inline-equation">'
+                        + katex.renderToString(tex)
+                        + '</span>';
+        }
+        else {
+            renderedHtml = '<div class="equation">'
+                        + katex.renderToString('\\displaystyle ' + tex)
+                        + '</div>';
+        }
+        s.outerHTML = renderedHtml;
+    }
+</script>

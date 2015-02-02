@@ -1,5 +1,8 @@
 # Dependencies
-markdown:         redcarpet
+markdown:           kramdown
+kramdown:
+  math_engine:      mathjax
+
 highlighter:      pygments
 
 # Permalinks
