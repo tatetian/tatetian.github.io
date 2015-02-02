@@ -95,6 +95,18 @@ html {
   transition: font-size 0.6s ;
 }
 
+@font-face {
+    font-family: 'Lubalin Graph';
+    src: url('/public/fonts/lubalin_graph_bold-webfont.eot');
+    src: url('/public/fonts/lubalin_graph_bold-webfont.eot?#iefix') format('embedded-opentype'),
+         url('/public/fonts/lubalin_graph_bold-webfont.woff2') format('woff2'),
+         url('/public/fonts/lubalin_graph_bold-webfont.woff') format('woff'),
+         url('/public/fonts/lubalin_graph_bold-webfont.ttf') format('truetype'),
+         url('/public/fonts/lubalin_graph_bold-webfont.svg#lubalin_graphbold') format('svg');
+    font-weight: bold;
+    font-style: normal;
+}
+
 .closed .sidebar-logo h1 {
   font-size: 1.5rem;
 }
