@@ -55,13 +55,34 @@ html {
     transition: opacity 0.6s;
     
   text-align: center;
-  padding: 2rem 1rem;
+  padding: 2rem 0rem;
   color: rgba(255,255,255,.5);
   background-color: #202020;
+
+    height: 200px;
+    opacity: 0.0;
 }
 
-.sidebar.closed {
-    padding: 0.5em 1rem;
+.sidebar.open {
+    opacity: 0.8;
+}
+
+.sidebar-btn {
+    position: fixed;
+    left: 0.8rem;
+    top: 0.8rem;
+    background-color: red;
+    width: 2.4rem;
+    height: 2.4rem;
+    z-index: 100;
+    line-height: 2.4rem;
+    font-size: 2rem;
+    cursor: pointer;
+    text-align: center;
+}
+
+.container > .terminal {
+    font-size: 1rem;
 }
 
 .sidebar-other {
@@ -135,8 +156,8 @@ a.sidebar-nav-item:focus {
 
 .content {
     margin-top: 0.8rem;
-  padding-top:    4rem;
-  padding-bottom: 4rem;
+    padding-top:    0rem;
+    padding-bottom: 0rem;
     max-width: 38rem;
 }
 

@@ -15,39 +15,7 @@
     </div>
     
     <script type="text/javascript">
-    (function() {
-        // topbar is closed by default
-        var closed = true;
-    
-        // handle click event on topbar
-        var logo = document.getElementsByClassName('sidebar-logo')[0]; 
-        logo.addEventListener('click', function(event) {
-            var topbar = document.getElementsByClassName('sidebar')[0];
-            if (topbar.className == 'sidebar closed') {
-                topbar.className = 'sidebar';
-                topbar.style.opacity = 1;
-                closed = false;
-            }
-            else {
-                topbar.className = 'sidebar closed';
-                closed = true;
-            }
-        });
-
-        // handle scrolling event to adjust opacity of topbar
-        /*window.addEventListener('scroll', function(event) {
-            if (!closed) return;
-
-            var offset = window.pageYOffset;
-            var threashold = 64;
-            var opacity = (threashold - offset) / threashold;
-            if (opacity < 0.6) opacity = 0.6;
-            
-            var topbar = document.getElementsByClassName('sidebar')[0];
-            topbar.style.opacity = opacity;
-        });*/
-
-    })();
+    {% include sidebar.js %}
     </script>
     
     {% include math-script.html %}
