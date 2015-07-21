@@ -123,9 +123,10 @@ body {
 //$main-color:blue;
 $red:#F92772;
 $red2:#AB3000;
+$red3:#E62E25;
 $blue:#66D9EE;
 $grey:#CBCBCB;
-$main-color:$red;
+$main-color:$red3;
 
 .sidebar-btn {
     position: fixed;
@@ -144,7 +145,7 @@ $main-color:$red;
 }
 
 a {
-   color: $red; 
+   color: $main-color; 
 }
 
 h1, h1 a{
@@ -152,7 +153,7 @@ h1, h1 a{
 }
 
 code {
-    color: $red;
+    color: $main-color;
 }
 
 .container > .terminal {
