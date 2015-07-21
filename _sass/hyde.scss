@@ -33,7 +33,13 @@
 
 html {
   /* Use the nicest Helvestica. Available on Mac. */
-  font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif; 
+ font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica 
+ Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+    font-family: "LetteraProLight", monospace;
+    font-family: "InputSans-Light", monospace;
+    font-weight: normal;
+    font-style: normal;
+/*font-family: "LetteraProLight", monospace;*/
 }
 
 /*
@@ -67,22 +73,91 @@ html {
     opacity: 0.8;
 }
 
+@font-face {
+  font-family: InputMono;
+  src: local("Input Mono");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: InputMono-Light;
+  src: local("InputMono ExLight");
+  font-weight: lighter;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: InputMono-Bold;
+  src: local("InputMono Bold");
+  font-weight: bold;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: InputSans;
+  src: local("InputSans");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: InputSans-Light;
+  src: local("InputSans ExLight");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: InputSans-Bold;
+  src: local("InputSans Bold");
+  font-weight: normal;
+  font-style: normal;
+}
+
+
+body {
+    padding-top: 0.12rem;
+}
+
+//$main-color:blue;
+$red:#F92772;
+$red2:#AB3000;
+$blue:#66D9EE;
+$grey:#CBCBCB;
+$main-color:$red;
+
 .sidebar-btn {
     position: fixed;
     left: 0.8rem;
     top: 0.8rem;
-    background-color: red;
+    background-color: $main-color;
     width: 2.4rem;
     height: 2.4rem;
     z-index: 100;
-    line-height: 2.4rem;
+    line-height: 2.55rem;
     font-size: 2rem;
     cursor: pointer;
     text-align: center;
+    color: white;
+    font-family: "InputSans-Bold";
+}
+
+a {
+   color: $red; 
+}
+
+h1, h1 a{
+    color: $main-color;
+}
+
+code {
+    color: $red;
 }
 
 .container > .terminal {
     font-size: 1rem;
+    font-family: Menlo, Monaco, "Courier New", monospace;
 }
 
 .sidebar-other {
@@ -110,11 +185,22 @@ html {
   color: #fff;
   margin: 0 0;
   /*font-family: "Abril Fatface", serif;*/
-  font-family: "Lubalin Graph", serif;
   font-weight: bold;
   font-size: 3.25rem;
   transition: font-size 0.6s ;
 }
+
+@font-face {
+    font-family: 'LetteraProLight';
+    src: url('/public/fonts/lineto-lettera-pro-light.eot');
+    src: url('/public/fonts/lineto-lettera-pro-light.eot?#iefix') format('embedded-opentype'),
+         url('/public/fonts/lineto-lettera-pro-light.woff2') format('woff2'),
+         url('/public/fonts/lineto-lettera-pro-light.woff') format('woff'),
+         url('/public/fonts/lineto-lettera-pro-light.ttf') format('truetype'),
+         url('/public/fonts/lineto-lettera-pro-light.svg#LetteraProLight') format('svg');
+    font-style: normal;
+}
+
 
 @font-face {
     font-family: 'Lubalin Graph';
