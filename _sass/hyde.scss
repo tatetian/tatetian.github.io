@@ -36,7 +36,7 @@ html {
  font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica 
  Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
     font-family: "LetteraProLight", monospace;
-    font-family: "InputSans-Light", monospace;
+    font-family: "InputSans", monospace;
     font-weight: normal;
     font-style: normal;
 /*font-family: "LetteraProLight", monospace;*/
@@ -74,38 +74,39 @@ html {
 }
 
 @font-face {
-  font-family: InputMono;
-  src: local("Input Mono");
-  font-weight: normal;
-  font-style: normal;
+  font-family: "InputMono";
+  src: local("☺"), 
+    url('/public/fonts/InputMonoExtraLight.woff2') format('woff2'),
+    url('/public/fonts/InputMonoExtraLight.woff') format('woff');
 }
 
 @font-face {
-  font-family: InputMono-Light;
-  src: local("InputMono ExLight");
-  font-weight: lighter;
-  font-style: normal;
+  font-family: "InputSans";
+  src: local("☺"), 
+    url('/public/fonts/InputSansExtraLight.woff2') format('woff2'),
+    url('/public/fonts/InputSansExtraLight.woff') format('woff');
 }
 
 @font-face {
-  font-family: InputMono-Bold;
-  src: local("InputMono Bold");
-  font-weight: bold;
-  font-style: normal;
+  font-family: "InputSans-Italic";
+  src: local("☺"), 
+    url('/public/fonts/InputSansExtraLightItalic.woff2') format('woff2'),
+    url('/public/fonts/InputSansExtraLightItalic.woff') format('woff');
 }
 
 @font-face {
-  font-family: InputSans;
-  src: local("InputSans");
-  font-weight: normal;
-  font-style: normal;
+  font-family: "InputSans-Bold";
+  src: local("☺"), 
+    url('/public/fonts/InputSansBold.woff2') format('woff2'),
+    url('/public/fonts/InputSansBold.woff') format('woff');
 }
 
-@font-face {
-  font-family: InputSans-Light;
-  src: local("InputSans ExLight");
-  font-weight: normal;
-  font-style: normal;
+i, cite, em, var, address, dfn {
+    font-family: "InputSans-Italic";
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: "InputSans-Bold";
 }
 
 @font-face {
@@ -154,11 +155,12 @@ h1, h1 a{
 
 code {
     color: $main-color;
+    font-family: "InputMono", Menlo, Monaco, "Courier New", monospace;
 }
 
 .container > .terminal {
     font-size: 1rem;
-    font-family: Menlo, Monaco, "Courier New", monospace;
+    font-family: "InputMono", Menlo, Monaco, "Courier New", monospace;
 }
 
 .sidebar-other {
