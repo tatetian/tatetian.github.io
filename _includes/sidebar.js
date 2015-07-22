@@ -1,27 +1,63 @@
 (function() {
-
 var sidebarEl = document.getElementsByClassName('sidebar')[0];
 var containerEl = sidebarEl.getElementsByClassName('container')[0];
+
+function getTermFitSize() {
+    var viewportWidth = Math.max(document.documentElement.clientWidth,
+                                 window.innerWidth || 0);
+    // use 16px font when the width of viewport is smaller than 830px
+    var charWidth = 11.4545;
+    var lineHeight = 27;
+    if (viewportWidth < 830) {
+        charWidth *= (16.0/18);
+        lineHeight *= (16.0/18);
+    }
+
+    var W = containerEl.clientWidth;
+    var H = containerEl.clientHeight;
+    var rows = Math.floor(H / lineHeight);
+    var cols = Math.floor(W / charWidth);
+    return {rows: rows, cols: cols};
+}
+
+var initTermSize = getTermFitSize();
 var term = new Terminal(containerEl, {
-    cols: 60,
-    rows: 20,
-    useStyle: true
+    cols: initTermSize.cols,
+    rows: initTermSize.rows,
+    useStyle: true,
+    prompt: '/home/tatetian{0}$ ',
+    welcome: 'Greetings, my name is Tate Tian.\r\n' +
+            'I am a computer science Ph.D. candidate, ' +
+            'and a full-stack developer ' +
+            'who is passionate about building something useful (and fun as well).\r\n' +
+            'This is my home on the Internet, where I share thoughts on programming, technology and startup.\r\n'
 });
+term.run('ls');
+
+window.onresize = function() {
+    var size = getTermFitSize();
+    term.resize(size.cols, size.rows);
+};
+
 
 var sidebarOpen = false;
 var btnEl = document.getElementsByClassName('sidebar-btn')[0];
 btnEl.addEventListener('click', function(event) {
     if (sidebarOpen) {
         sidebarEl.classList.remove('open');
+        sidebarEl.classList.add('close');
         btnEl.innerText = 'T';
         sidebarOpen = false;
     }
     else {
+        sidebarEl.classList.remove('close');
         sidebarEl.classList.add('open');
         btnEl.innerText = 'X';
         sidebarOpen = true;
     }
 });
+
+
 
 // handle scrolling event to adjust opacity of topbar
 /*window.addEventListener('scroll', function(event) {

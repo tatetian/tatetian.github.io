@@ -55,22 +55,28 @@ html {
     left: 0;
     right: 0;
     overflow: hidden;
-    transition: padding 0.6s ;
     z-index: 100;
-    opacity: 1;
-    transition: opacity 0.6s;
-    
   text-align: center;
-  padding: 2rem 0rem;
   color: rgba(255,255,255,.5);
-  background-color: #202020;
+  background-color: black;
 
-    height: 200px;
-    opacity: 0.0;
+    height: 100%;
 }
 
-.sidebar.open {
-    opacity: 0.8;
+.sidebar > .container {
+    height: 100%;
+}
+
+$speed:0.4s;
+.open {
+  visibility: visible;
+  opacity: 0.8;
+  transition: opacity $speed linear;
+}
+.close {
+  visibility: hidden;
+  opacity: 0;
+  transition: visibility 0s $speed, opacity $speed linear;
 }
 
 @font-face {
@@ -161,6 +167,16 @@ code {
 .container > .terminal {
     font-size: 1rem;
     font-family: "InputMono", Menlo, Monaco, "Courier New", monospace;
+    padding: 0 0;
+    margin: 0 0;
+    border: none;
+    text-align: left;
+    height: 100%;
+    width: 105%; /* leave some extra space so that content won't overflow
+                    due to inacurracy of floating point number calculation */
+}
+
+.container > .terminal > div{
 }
 
 .sidebar-other {
@@ -244,10 +260,14 @@ a.sidebar-nav-item:focus {
  */
 
 .content {
-    margin-top: 0.8rem;
+    margin-top: 0.55rem;
     padding-top:    0rem;
     padding-bottom: 0rem;
     max-width: 38rem;
+}
+
+.post-title {
+    margin-top: 0.72rem;
 }
 
 /*

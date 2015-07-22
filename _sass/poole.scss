@@ -52,7 +52,7 @@ html {
   font-size: 16px;
   line-height: 1.5;
 }
-@media (min-width: 38em) {
+@media (min-width: 830px) {
   html {
     font-size: 18px;
   }
@@ -289,9 +289,9 @@ tbody tr:nth-child(odd) th {
 
 .container {
   max-width: 38rem;
-  padding-left:  1.6rem;
-  padding-right: 1rem;
-  margin-left:  3rem;
+  padding-left:  0rem;
+  padding-right: 0rem;
+  margin-left:  4.6rem;
   margin-right: auto;
 }
 
