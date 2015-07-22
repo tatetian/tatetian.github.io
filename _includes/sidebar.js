@@ -17,6 +17,7 @@ function getTermFitSize() {
     var H = containerEl.clientHeight;
     var rows = Math.floor(H / lineHeight);
     var cols = Math.floor(W / charWidth);
+    console.debug('rows=' + rows);
     return {rows: rows, cols: cols};
 }
 
@@ -25,34 +26,40 @@ var term = new Terminal(containerEl, {
     cols: initTermSize.cols,
     rows: initTermSize.rows,
     useStyle: true,
-    prompt: '/home/tatetian{0}$ ',
+    prompt: 'tatetian.io:%s}$ ',
     welcome: 'Greetings, my name is Tate Tian.\r\n' +
             'I am a computer science Ph.D. candidate, ' +
             'and a full-stack developer ' +
             'who is passionate about building something useful (and fun as well).\r\n' +
             'This is my home on the Internet, where I share thoughts on programming, technology and startup.\r\n'
 });
-term.run('ls');
 
 window.onresize = function() {
     var size = getTermFitSize();
     term.resize(size.cols, size.rows);
 };
 
-
+var shownWelcome = false;
 var sidebarOpen = false;
-var btnEl = document.getElementsByClassName('sidebar-btn')[0];
+var btnEl = document.getElementsByClassName('logo-btn')[0];
 btnEl.addEventListener('click', function(event) {
     if (sidebarOpen) {
         sidebarEl.classList.remove('open');
         sidebarEl.classList.add('close');
-        btnEl.innerText = 'T';
+        btnEl.classList.remove('clicked');
         sidebarOpen = false;
     }
     else {
+        // run the terminal lazily util it is visible by user
+        if (!shownWelcome) {
+            term.welcome();
+            term.run('ls');
+            shownWelcome = true;
+        }
+
+        btnEl.classList.add('clicked');
         sidebarEl.classList.remove('close');
         sidebarEl.classList.add('open');
-        btnEl.innerText = 'X';
         sidebarOpen = true;
     }
 });

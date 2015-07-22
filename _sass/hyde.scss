@@ -67,15 +67,23 @@ html {
     height: 100%;
 }
 
-$speed:0.4s;
+$speed:0.25s;
 .open {
   visibility: visible;
   opacity: 0.8;
+  -webkit-transition: opacity $speed linear;
+  -moz-transition: opacity $speed linear;
+  -ms-transition: opacity $speed linear;
+  -o-transition: opacity $speed linear;
   transition: opacity $speed linear;
 }
 .close {
   visibility: hidden;
   opacity: 0;
+  -webkit-transition: visibility 0s $speed, opacity $speed linear;
+  -moz-transition: visibility 0s $speed, opacity $speed linear;
+  -ms-transition: visibility 0s $speed, opacity $speed linear;
+  -o-transition: visibility 0s $speed, opacity $speed linear;
   transition: visibility 0s $speed, opacity $speed linear;
 }
 
@@ -179,80 +187,6 @@ code {
 .container > .terminal > div{
 }
 
-.sidebar-other {
-    padding-top: 1rem;
-    max-height: 20rem;
-    overflow: hidden;
-    transition: max-height 0.6s, padding 0.6s ;
-}
-
-.closed .sidebar-other {
-    padding-top: 0rem;
-    max-height: 0rem;
-}
-
-/* Sidebar links */
-.sidebar a {
-  color: #fff;
-}
-
-.sidebar-logo {
-    cursor: pointer;
-}
-
-.sidebar-logo h1 {
-  color: #fff;
-  margin: 0 0;
-  /*font-family: "Abril Fatface", serif;*/
-  font-weight: bold;
-  font-size: 3.25rem;
-  transition: font-size 0.6s ;
-}
-
-@font-face {
-    font-family: 'LetteraProLight';
-    src: url('/public/fonts/lineto-lettera-pro-light.eot');
-    src: url('/public/fonts/lineto-lettera-pro-light.eot?#iefix') format('embedded-opentype'),
-         url('/public/fonts/lineto-lettera-pro-light.woff2') format('woff2'),
-         url('/public/fonts/lineto-lettera-pro-light.woff') format('woff'),
-         url('/public/fonts/lineto-lettera-pro-light.ttf') format('truetype'),
-         url('/public/fonts/lineto-lettera-pro-light.svg#LetteraProLight') format('svg');
-    font-style: normal;
-}
-
-
-@font-face {
-    font-family: 'Lubalin Graph';
-    src: url('/public/fonts/lubalin_graph_bold-webfont.eot');
-    src: url('/public/fonts/lubalin_graph_bold-webfont.eot?#iefix') format('embedded-opentype'),
-         url('/public/fonts/lubalin_graph_bold-webfont.woff2') format('woff2'),
-         url('/public/fonts/lubalin_graph_bold-webfont.woff') format('woff'),
-         url('/public/fonts/lubalin_graph_bold-webfont.ttf') format('truetype'),
-         url('/public/fonts/lubalin_graph_bold-webfont.svg#lubalin_graphbold') format('svg');
-    font-weight: bold;
-    font-style: normal;
-}
-
-.closed .sidebar-logo h1 {
-  font-size: 1.5rem;
-}
-
-/* Sidebar nav */
-.sidebar-nav {
-  margin-bottom: 1rem;
-}
-.sidebar-nav-item {
-  display: block;
-  line-height: 1.75 ;
-}
-a.sidebar-nav-item:hover,
-a.sidebar-nav-item:focus {
-  text-decoration: underline;
-}
-.sidebar-nav-item.active {
-  font-weight: bold;
-}
-
 /* Container
  *
  * Align the contents of the site above the proper threshold with some margin-fu
@@ -264,6 +198,68 @@ a.sidebar-nav-item:focus {
     padding-top:    0rem;
     padding-bottom: 0rem;
     max-width: 38rem;
+    margin-right: 1.4rem;
+}
+
+.logo-btn {
+    position: fixed;
+    left: 0.8rem;
+    top: 0.8rem;
+    background-color: $main-color;
+    width: 2.4rem;
+    height: 2.4rem;
+    z-index: 100;
+    cursor: pointer;
+    color: white;
+}
+
+.logo {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    /* use the size as font size so that translate transform can be specified
+    in em, which works around the fact percentage cannot be used */
+    font-size: 2.4rem;
+}
+
+.logo > div{
+    position: absolute;
+    background-color: white;
+    -webkit-transition: 0.1s ease-in-out;
+    -moz-transition: 0.1s ease-in-out;
+    -ms-transition: 0.1s ease-in-out;
+    -o-transition: 0.1s ease-in-out;
+    transition: 0.1s ease-in-out;
+}
+
+.logo > .bar1 {
+    left: 22%;
+    top: 20%;
+    width: 56%;
+    height: 14%;
+}
+
+.logo > .bar2 {
+    left: 40%;
+    top: 20%;
+    width: 20%;
+    height: 60%;
+}
+
+.logo-btn.clicked .bar1{
+    -webkit-transform: translate(0, 0.23em) rotate(45deg) scaleX(1.035714) scaleY(1.2142857);
+    -moz-transform: translate(0, 0.23em) rotate(45deg) scaleX(1.035714) scaleY(1.2142857);
+    -ms-transform: translate(0, 0.23em) rotate(45deg) scaleX(1.035714) scaleY(1.2142857);
+    -o-transform: translate(0, 0.23em) rotate(45deg) scaleX(1.035714) scaleY(1.2142857);
+    transform: translate(0, 0.23em) rotate(45deg) scaleX(1.035714) scaleY(1.2142857);
+}
+
+.logo-btn.clicked .bar2{
+    -webkit-transform: rotate(45deg) scaleX(0.85) scaleY(0.9666666666667) ;
+    -moz-transform: rotate(45deg) scaleX(0.85) scaleY(0.9666666666667) ;
+    -ms-transform: rotate(45deg) scaleX(0.85) scaleY(0.9666666666667) ;
+    -o-transform: rotate(45deg) scaleX(0.85) scaleY(0.9666666666667) ;
+    transform: rotate(45deg) scaleX(0.85) scaleY(0.9666666666667) ;
 }
 
 .post-title {
