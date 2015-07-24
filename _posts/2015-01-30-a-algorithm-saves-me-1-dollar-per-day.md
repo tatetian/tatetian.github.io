@@ -1,5 +1,5 @@
 ---
-layout: post-with-math
+layout: post
 title: A&#42; Algorithm Saves Me $1 Per Day!
 ---
 

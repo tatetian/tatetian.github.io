@@ -39,6 +39,7 @@ var shell = new tateterm.Shell(term, {
         onclick: 'alert("click"); return false;'
     }
 });
+shell.run('ls');
 
 window.onresize = function() {
     var size = getTermFitSize();

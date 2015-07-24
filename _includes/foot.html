@@ -1,3 +1,10 @@
+<!-- Terminal -->
+<script src="{{ site.baseurl }}public/js/tateterm.min.js"></script>
+<script type="text/javascript">
+{% include sidebar.js %}
+</script>
+<!-- KaTex -->
+<script src="{{ site.baseurl }}public/js/katex.min.js"></script>
 <script type="text/javascript">
     var allScripts = document.getElementsByTagName('script');
     var noUpdateCopy = [];
@@ -12,7 +19,6 @@
         var tex = s.innerText;
         var inline = s.type.indexOf("mode=display") < 0;
         var renderedHtml;
-        console.debug(tex);
         if (inline) {
             renderedHtml = '<span class="inline-equation">'
                         + katex.renderToString(tex)
@@ -25,4 +31,14 @@
         }
         s.outerHTML = renderedHtml;
     }
+</script>
+<!-- Baidu statistics -->  
+<script type="text/javascript">
+var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?c3c6d70d9d8f96f1424c52ce7c552634";
+    var s = document.getElementsByTagName("script")[0]; 
+    s.parentNode.insertBefore(hm, s);
+})();
 </script>
