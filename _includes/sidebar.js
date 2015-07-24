@@ -22,16 +22,22 @@ function getTermFitSize() {
 }
 
 var initTermSize = getTermFitSize();
-var term = new Terminal(containerEl, {
+var term = new tateterm.Terminal(containerEl, {
     cols: initTermSize.cols,
     rows: initTermSize.rows,
     useStyle: true,
-    prompt: 'tatetian.io:%s}$ ',
-    welcome: 'Greetings, my name is Tate Tian.\r\n' +
+});
+var shell = new tateterm.Shell(term, {
+    promptTemplate: '%s$ ',
+    welcomeMsg: 'Hey there, my name is Tate Tian.\r\n' +
             'I am a computer science Ph.D. candidate, ' +
             'and a full-stack developer ' +
             'who is passionate about building something useful (and fun as well).\r\n' +
-            'This is my home on the Internet, where I share thoughts on programming, technology and startup.\r\n'
+            'This is my home on the Internet, where I share thoughts on programming, technology and startup.',
+    urlMeta: {
+        href: '#',
+        onclick: 'alert("click"); return false;'
+    }
 });
 
 window.onresize = function() {
@@ -52,8 +58,8 @@ btnEl.addEventListener('click', function(event) {
     else {
         // run the terminal lazily util it is visible by user
         if (!shownWelcome) {
-            term.welcome();
-            term.run('ls');
+            /*term.welcome();
+            term.run('ls');*/
             shownWelcome = true;
         }
 
