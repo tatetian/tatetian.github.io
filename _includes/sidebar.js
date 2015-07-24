@@ -36,7 +36,7 @@ var shell = new tateterm.Shell(term, {
             'This is my home on the Internet, where I share thoughts on programming, technology and startup.',
     urlMeta: {
         href: '#',
-        onclick: 'alert("click"); return false;'
+        onclick: 'loadContent(event); return false;'
     }
 });
 shell.run('ls');
@@ -71,19 +71,47 @@ btnEl.addEventListener('click', function(event) {
     }
 });
 
+function ContentLoader() {
+    var self = this;
+    window.onpopstate = function(event) {
+        var url = window.location;
+        self.load(url, true);
+    };
+};
 
+ContentLoader.prototype.load = function(url, backHistory) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.responseType = "document";
 
-// handle scrolling event to adjust opacity of topbar
-/*window.addEventListener('scroll', function(event) {
-    if (!closed) return;
+    xhr.onload = function () {
+        // get the new content
+        var resDoc = xhr.responseXML;
+        var newPost = resDoc.getElementsByClassName('post')[0];
 
-    var offset = window.pageYOffset;
-    var threashold = 64;
-    var opacity = (threashold - offset) / threashold;
-    if (opacity < 0.6) opacity = 0.6;
+        // replace the old content with the new one
+        var oldPost = document.getElementsByClassName('post')[0];
+        var container = oldPost.parentNode;
+        container.removeChild(oldPost);
+        container.appendChild(newPost);
 
-    var topbar = document.getElementsByClassName('sidebar')[0];
-    topbar.style.opacity = opacity;
-});*/
+        // manipulate the browser history
+        if (!backHistory)
+            window.history.pushState(null, "", url);
+    };
+
+    xhr.send();
+}
+
+var contentLoader = new ContentLoader();
+window.loadContent = function(e) {
+    // prevent the default behaviour of browser when clicking <a> tag
+    e.preventDefault();
+    // load the url specified by the <a> tag
+    var atag = (e.target) ? e.target : e.srcElement;
+    var url = atag.dataset.url;
+    if (!url) return;
+    contentLoader.load(url);
+};
 
 })();
