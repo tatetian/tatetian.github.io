@@ -163,6 +163,11 @@ a {
    color: $main-color; 
 }
 
+.terminal a {
+   color: white; 
+   text-decoration: underline;
+}
+
 h1, h1 a{
     color: $main-color;
 }

@@ -26,6 +26,8 @@ var term = new tateterm.Terminal(containerEl, {
     rows: initTermSize.rows,
     useStyle: true,
 });
+// set red color to the exactly the same red as we use
+term._term.colors[1] = '#e62e25';
 var shell = new tateterm.Shell(term, {
     promptTemplate: '%s$ ',
     welcomeMsg: 'Hey there, my name is Tate Tian.\r\n' +
@@ -38,7 +40,6 @@ var shell = new tateterm.Shell(term, {
         onclick: 'return linkHandler(event);'
     }
 });
-shell.run('ls');
 
 window.onresize = function() {
     var size = getTermFitSize();
@@ -56,10 +57,11 @@ var toggleTerm = function() {
         sidebarOpen = false;
     }
     else {
-        // run the terminal lazily util it is visible by user
+        // Run the terminal lazily util it is visible by user.
+        // The reason is that resizing window may truncate welcome message.
         if (!shownWelcome) {
-            /*term.welcome();
-            term.run('ls');*/
+            shell.init();
+            shell.run('ls');
             shownWelcome = true;
         }
 
@@ -94,6 +96,11 @@ ContentLoader.prototype.load = function(url, backHistory) {
         var container = oldPost.parentNode;
         container.removeChild(oldPost);
         container.appendChild(newPost);
+
+        // update title
+        document.title =  resDoc.title;
+
+        window.scrollTo(0, 0);
 
         // manipulate the browser history
         if (!backHistory)
