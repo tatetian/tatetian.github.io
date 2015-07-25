@@ -17,7 +17,6 @@ function getTermFitSize() {
     var H = containerEl.clientHeight;
     var rows = Math.floor(H / lineHeight);
     var cols = Math.floor(W / charWidth);
-    console.debug('rows=' + rows);
     return {rows: rows, cols: cols};
 }
 
@@ -36,7 +35,7 @@ var shell = new tateterm.Shell(term, {
             'This is my home on the Internet, where I share thoughts on programming, technology and startup.',
     urlMeta: {
         href: '#',
-        onclick: 'loadContent(event); return false;'
+        onclick: 'return linkHandler(event);'
     }
 });
 shell.run('ls');
@@ -49,7 +48,7 @@ window.onresize = function() {
 var shownWelcome = false;
 var sidebarOpen = false;
 var btnEl = document.getElementsByClassName('logo-btn')[0];
-btnEl.addEventListener('click', function(event) {
+var toggleTerm = function() {
     if (sidebarOpen) {
         sidebarEl.classList.remove('open');
         sidebarEl.classList.add('close');
@@ -69,7 +68,8 @@ btnEl.addEventListener('click', function(event) {
         sidebarEl.classList.add('open');
         sidebarOpen = true;
     }
-});
+};
+btnEl.addEventListener('click', toggleTerm);
 
 function ContentLoader() {
     var self = this;
@@ -101,17 +101,26 @@ ContentLoader.prototype.load = function(url, backHistory) {
     };
 
     xhr.send();
-}
+};
 
 var contentLoader = new ContentLoader();
-window.loadContent = function(e) {
+window.linkHandler = function(e) {
     // prevent the default behaviour of browser when clicking <a> tag
     e.preventDefault();
-    // load the url specified by the <a> tag
     var atag = (e.target) ? e.target : e.srcElement;
     var url = atag.dataset.url;
-    if (!url) return;
-    contentLoader.load(url);
+    if (url) {
+        // load the url specified by the <a> tag
+        contentLoader.load(url);
+        // hide terminal
+        toggleTerm();
+    }
+    else {
+        var path = atag.dataset.path;
+        shell.run('cd ' + path);
+        shell.run('ls');
+    }
+    return false;
 };
 
 })();
