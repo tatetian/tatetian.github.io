@@ -34,11 +34,7 @@ var shell = new tateterm.Shell(term, {
             'I am a computer science Ph.D. candidate, ' +
             'and a full-stack developer ' +
             'who is passionate about building something useful (and fun as well).\r\n' +
-            'This is my home on the Internet, where I share thoughts on programming, technology and startup.',
-    urlMeta: {
-        href: '#',
-        onclick: 'return linkHandler(event);'
-    }
+            'This is my home on the Internet, where I share thoughts on programming, technology and startup.'
 });
 
 window.onresize = function() {
@@ -111,23 +107,11 @@ ContentLoader.prototype.load = function(url, backHistory) {
 };
 
 var contentLoader = new ContentLoader();
-window.linkHandler = function(e) {
-    // prevent the default behaviour of browser when clicking <a> tag
-    e.preventDefault();
-    var atag = (e.target) ? e.target : e.srcElement;
-    var url = atag.dataset.url;
-    if (url) {
-        // load the url specified by the <a> tag
-        contentLoader.load(url);
-        // hide terminal
-        toggleTerm();
-    }
-    else {
-        var path = atag.dataset.path;
-        shell.run('cd ' + path);
-        shell.run('ls');
-    }
-    return false;
-};
+shell.on('loadurl', function(url) {
+    // load the url specified by the <a> tag
+    contentLoader.load(url);
+    // hide terminal
+    toggleTerm();
+});
 
 })();
