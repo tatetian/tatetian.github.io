@@ -7,7 +7,7 @@ highlighter:      pygments
 
 # Permalinks
 permalink:        pretty
-relative_permalinks: true
+#relative_permalinks: true
 
 # Setup
 title:            'Tate Tian'
@@ -23,10 +23,13 @@ author:
   name:           'Tate Tian'
   url:            http://tatetian.me
 
-paginate:         5
 
 # Custom vars
 version:          2.1.0
+
+paginate:         5
+gems:               [jekyll-paginate]
+paginate_path:      "page:num"
 
 github:
   repo:           https://github.com/tatetian
