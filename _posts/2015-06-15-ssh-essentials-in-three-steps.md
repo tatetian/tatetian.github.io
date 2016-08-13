@@ -17,7 +17,7 @@ not. In this post, I want to share with you the essentials of SSH.
 
 (This post focuses on the open-source implementation of SSH, OpenSSH. Sorry, Windows folks!)
 
-##Big Picture: The Three Steps
+## Big Picture: The Three Steps
 Secure Shell, or SSH, is a network tool whose primary goal is to allow an user
 to login a machine *remotely* and *securely*. 
 
@@ -27,7 +27,7 @@ To this aim, SSH works in the following three steps:
 * **User authentication**: SSH client tries to login the SSH server by providing user’s credential (e.g. public key in `~/.ssh/id_rsa.pub`);
 * **Secure data transfer**: Data transfer occurs in the secure channel established between the SSH client and server. On the secure channel, various network protocols (e.g. ftp, X protocol, socket) can be supported.
 
-###Server Validation
+### Server Validation
 To prevent a user from logining into a wrong machine accidentally, SSH client
 maintains the records of machine key signatures in `~/.ssh/known_hosts`. When a
 SSH client connects to a machine for the first time, a new record (the IP and
@@ -41,7 +41,7 @@ occupied by another machine, the records in `~/.ssh/known_hosts` can become
 invalid. The invalid records must be deleted from `known_hosts` file so that
 the SSH client will not forbid users’ connection attempt.
 
-###User Authentication
+### User Authentication
 Password is the most common way of user authentication. While using password is
 very intuitive, it may not be sufficient in some situations when, for example,
 password is not secure enough (if brute-force attack is a concern), or when
@@ -71,7 +71,7 @@ As it may become clear by now, appending the public key in your
 `~/.ssh/id_XXX.pub` to `~/.ssh/authorized_keys` on another machine can grant
 you access to the machine without entering password.
 
-###Secure Data Transfer
+### Secure Data Transfer
 Despite its initial goal of allowing a user to login a shell remotely and
 securely (as its name suggests), SSH can serve multiple purposes. With
 flexiblity and extensiblity in mind, SSH has been designed as a three-layer
@@ -85,14 +85,14 @@ that SSH is very versatile in usage, for example:
 * **X forwarding (`-X` parameter)**, allows a remote shell to run applications with GUI backed by X server;
 * **Port forwarding**, tunnels arbitrary TCP traffics.
 
-##Port Forwarding
+## Port Forwarding
 Port forwarding is a very powerful yet somewhat confusing feature that deserves
 further elaboration.
 
 The three types of port forwarding---Local forwarding, remote forwarding and
 dynamic forwarding— are similar but different.
 
-###Local Forwarding
+### Local Forwarding
 ![Local forwarding]({{ site.baseurl }}public/img/ssh-essentials/local_forwarding.png)
 
 Local forwarding enables local-side machines  to connect to a remote-side
@@ -104,7 +104,7 @@ The option for local forwarding in OpenSSH client is `-L
 if you want to the socket listening to port `local_port` on all interfaces of
 the local-side machine running SSH client.
 
-###Remote Forwarding
+### Remote Forwarding
 ![Remote Forwarding]({{ site.baseurl }}public/img/ssh-essentials/remote_forwarding.png)
 
 Conversely, remote forwarding gives remote-side machines the ability to connect
@@ -117,7 +117,7 @@ The option for remote forwarding in OpenSSH client is `-R
 `*` if you want to the socket listening to port `remote_port` on all interfaces
 of the remote-side machine running SSH server.
 
-###Dynamic Forwarding
+### Dynamic Forwarding
 ![Dynamic Forwarding]({{ site.baseurl }}public/img/ssh-essentials/dynamic_forwarding.png)
 
 While local/remote forwarding redirect all the traffic to one target---a
@@ -132,7 +132,7 @@ The option for dynamic forwarding in OpenSSH client is `-D
 [local_address:]local_port.` The parameter `local_address` can be set to `*`
 with same meaning as in local forwarding and remote forwarding.
 
-##Closing remarks
+## Closing remarks
 This post is by no means comprehensive. Yet, I hope it gives an interesting
 introduction to the essentials of SSH, and clears up confusion about the port
 forwarding of SSH. One important topic that is missing in this post is [SSH

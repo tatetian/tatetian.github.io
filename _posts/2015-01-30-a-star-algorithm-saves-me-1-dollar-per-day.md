@@ -54,8 +54,7 @@ enough, a best-first search can be far more efficient than a brute-force search
 by exploring the "fruitful" part of the search space first.
 
 The following code demonstrates a best-first search implemented in JavaScript:
-
-{% highlight js %}
+{% highlight javascript %}
 function bestFirstSearch(initNode, goalNode, evalFunc) {
     // Maintains open nodes and its order
     var openNodes = new PriorityQueue();

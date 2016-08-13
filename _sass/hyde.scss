@@ -95,6 +95,14 @@ $speed:0.25s;
 }
 
 @font-face {
+  font-family: "InputMono";
+  src: local("☺"), 
+    url('/public/fonts/InputMonoBold.woff2') format('woff2'),
+    url('/public/fonts/InputMonoBold.woff') format('woff');
+  font-weight: bold;
+}
+
+@font-face {
   font-family: "InputSans";
   src: local("☺"), 
     url('/public/fonts/InputSansExtraLight.woff2') format('woff2'),
