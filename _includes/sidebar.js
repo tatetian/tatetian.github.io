@@ -69,6 +69,32 @@ var toggleTerm = function() {
 };
 btnEl.addEventListener('click', toggleTerm);
 
+function now() {
+    return (new Date).getTime() / 1000;
+}
+
+var logoEl = document.getElementsByClassName('logo')[0];
+var rotateAngle = 0;
+var lastRotateTime = 0;
+var autoRotateTimer = null;
+var autoRotatePeriod = 5000; // 5s
+function rotateLogo(event) {
+    if (event) event.stopPropagation();
+
+    clearTimeout(autoRotateTimer);
+    autoRotateTimer = setTimeout(rotateLogo, autoRotatePeriod);
+
+    var isCloseBtn = btnEl.classList.contains("clicked");
+    if (!isCloseBtn) {
+        rotateAngle += 180;
+        logoEl.style.transform = "rotateY(" + rotateAngle + "deg)";
+    }
+}
+btnEl.addEventListener('mouseenter', rotateLogo);
+btnEl.addEventListener('mouseleave', rotateLogo);
+// Delay the first rotate a little bit in case the page is not fully loaded
+setTimeout(rotateLogo, 2000);
+
 function ContentLoader() {
     var self = this;
     window.onpopstate = function(event) {
@@ -108,10 +134,10 @@ ContentLoader.prototype.load = function(url, backHistory) {
 
 var contentLoader = new ContentLoader();
 shell.on('loadurl', function(url) {
-    // load the url specified by the <a> tag
-    contentLoader.load(url);
-    // hide terminal
-    toggleTerm();
+        // load the url specified by the <a> tag
+        contentLoader.load(url);
+        // hide terminal
+        toggleTerm();
 });
 
 })();

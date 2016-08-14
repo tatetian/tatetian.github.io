@@ -226,6 +226,7 @@ code {
     z-index: 100;
     cursor: pointer;
     color: white;
+    perspective: 800px;
 }
 
 .logo {
@@ -235,7 +236,14 @@ code {
     /* use the size as font size so that translate transform can be specified
     in em, which works around the fact percentage cannot be used */
     font-size: 2.4rem;
+    transform-style: preserve-3d;
+    transition: transform 0.5s;
 }
+
+.logo:hover {
+    transform: rotateY( 180deg );
+}
+
 
 .logo > div{
     position: absolute;
