@@ -72,7 +72,7 @@ over time I will get better, *definitely*. ”
 Blogging is a fullfillment to the need of expressing myself, and maybe more
 importantly, a treatment to my perfectionism.
 
-##Final thoughts
+## Final thoughts
 
 This post is mainly about my rationale of blogging, which, given the fact that
 everyone has different characteristics and needs, may not be adequate to you.
@@ -82,8 +82,3 @@ which may shed more light on this topic for you:
 * [Nathan Marz](http://nathanmarz.com/)’s [Break into Silicon Valley with a blog](http://nathanmarz.com/blog/break-into-silicon-valley-with-a-blog-1.html);
 * [Josh Davis](https://joshldavis.com)’s [The Beginning of a Beautiful Blogship](https://joshldavis.com/2013/05/11/beginning-of-a-beautiful-blogship/);
 * [9 Reasons You Should Blog](http://www.forbes.com/sites/danreich/2011/10/15/9-reasons-you-should-blog/) on Forbes.
-
-In the end, I want make use of an pyschological trick called [early
-commitment](http://en.wikipedia.org/wiki/Lock-in_(decision-making)): to my dear
-readers, I humbly promise to publish my blog posts at least twice a month. I
-would like your feedbacks. Thanks for reading!

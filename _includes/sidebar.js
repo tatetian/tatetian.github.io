@@ -30,11 +30,8 @@ var term = new tateterm.Terminal(containerEl, {
 term._term.colors[1] = '#e62e25';
 var shell = new tateterm.Shell(term, {
     promptTemplate: '%s$ ',
-    welcomeMsg: 'Hey there, my name is Tate Tian.\r\n' +
-            'I am a computer science Ph.D. candidate, ' +
-            'and a full-stack developer ' +
-            'who is passionate about building something useful (and fun as well).\r\n' +
-            'This is my home on the Internet, where I share thoughts on programming, technology and startup.'
+    welcomeMsg: 'This is the tech blog of Tate Tian.\r\n' +
+            'To explore this website, use this terminal by clicking files or typing commands.'
 });
 
 window.onresize = function() {
@@ -93,21 +90,39 @@ function rotateLogo(event) {
 btnEl.addEventListener('mouseenter', rotateLogo);
 btnEl.addEventListener('mouseleave', rotateLogo);
 // Delay the first rotate a little bit in case the page is not fully loaded
-setTimeout(rotateLogo, 2000);
+setTimeout(rotateLogo, 1500);
 
 function ContentLoader() {
     var self = this;
+    self.preUrl = window.location.href;
+
     window.onpopstate = function(event) {
-        var url = window.location;
+        var url = window.location.href;
         self.load(url, true);
     };
 };
 
+ContentLoader.prototype.getBaseUrl = function(url) {
+    var baseUrlLen = url.indexOf("#");
+    if (baseUrlLen < 0) baseUrlLen = url.length;
+    var baseUrl = url.substr(0, baseUrlLen);
+    return baseUrl;
+}
+
+ContentLoader.prototype.dontLoad = function(url) {
+    window._preUrl = this.preUrl;
+    window._url = url;
+    return this.getBaseUrl(this.preUrl) == this.getBaseUrl(url);
+}
+
 ContentLoader.prototype.load = function(url, backHistory) {
+    if (this.dontLoad(url)) return;
+
     var xhr = new XMLHttpRequest();
     xhr.open('GET', url, true);
     xhr.responseType = "document";
 
+    var self = this;
     xhr.onload = function () {
         // get the new content
         var resDoc = xhr.responseXML;
@@ -120,13 +135,15 @@ ContentLoader.prototype.load = function(url, backHistory) {
         container.appendChild(newPost);
 
         // update title
-        document.title =  resDoc.title;
+        document.title = resDoc.title;
 
         window.scrollTo(0, 0);
 
         // manipulate the browser history
         if (!backHistory)
             window.history.pushState(null, "", url);
+
+        self.preUrl = url;
     };
 
     xhr.send();

@@ -182,6 +182,16 @@ h1, h1 a{
     color: $main-color;
 }
 
+h2,h3 a {
+    color: #313131;
+}
+
+h2,h3 a:hover {
+    color: #313131;
+    text-decoration: none;
+}
+
+
 code {
     color: $main-color;
     font-family: "InputMono", Menlo, Monaco, "Courier New", monospace;
