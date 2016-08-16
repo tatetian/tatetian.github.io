@@ -1,0 +1,705 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+ <title>Tate Tian</title>
+ <link href="http://tatetian.me/atom.xml" rel="self"/>
+ <link href="http://tatetian.me/"/>
+ <updated>2016-08-16T20:38:22+08:00</updated>
+ <id>http://tatetian.me</id>
+ <author>
+   <name>Tate Tian</name>
+   <email></email>
+ </author>
+
+ 
+ <entry>
+   <title>File I/O Inside Intel SGX Enclave</title>
+   <link href="http://tatetian.me/2016/01/25/file-io-inside-intel-sgx-enclave/"/>
+   <updated>2016-01-25T00:00:00+08:00</updated>
+   <id>http://tatetian.me/2016/01/25/file-io-inside-intel-sgx-enclave</id>
+   <content type="html">&lt;p&gt;Intel Software Guard Extensions (SGX) is a set of new x86 instructions that 
+enable a new kind of programming primitive called enclave to be created, 
+launched, attested, sealed and destroyed. Enclave is a protected area of the 
+address space of a process, in which the code and data cannot be snooped or 
+tampered by any software or hardware measures that are originated from outside 
+the enclave. Enclave can be very useful for building secure cloud apps that 
+are protected from potentially malicious cloud providers. 
+See &lt;a href=&quot;https://software.intel.com/sites/default/files/managed/d5/e7/Intel-SGX-SDK-Users-Guide-for-Windows-OS.pdf&quot;&gt;white papers&lt;/a&gt;
+and &lt;a href=&quot;https://software.intel.com/sites/default/files/332680-001.pdf&quot;&gt;technical slides&lt;/a&gt; 
+for more information about Intel SGX.&lt;/p&gt;
+
+&lt;p&gt;While all the code and data inside enclave are protected, not all code can be
+executed inside an enclave, for example, all privilleged instructions are 
+invalid in enclave. This means all system calls and I/O operations are 
+not available in enclave. Thus, it would not be surprising that the 
+standard C library shipped with SGX SDK is intetionally left incomplete, 
+missing lots of common and useful procedures, e.g. &lt;code class=&quot;highlighter-rouge&quot;&gt;open&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;read&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;write&lt;/code&gt;, 
+&lt;code class=&quot;highlighter-rouge&quot;&gt;close&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;exit&lt;/code&gt;, etc. This makes porting existing applications into enclave 
+a painful job.&lt;/p&gt;
+
+&lt;p&gt;Here is a full list of invalid instructions inside enclave:&lt;/p&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;Types&lt;/th&gt;
+      &lt;th&gt;Instructions&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;VMEXIT generating instructions are not allowed because a VMM cannot update the enclave. Generates a #UD.&lt;/td&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;CPUID&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;GETSEC&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;RDPMC&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;RDTSC&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;RDTSCP&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;SGDT&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;SIDT&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;SLDT&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;STR&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;VMCALL&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;VMFUNC&lt;/code&gt;&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;I/O instructions (also VMEXIT). Generates #UD.&lt;/td&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;IN&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;INS/INSB/INSW/INSD&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;OUT&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;OUTS/OUTSB/OUTSW/OUTSD&lt;/code&gt;&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;Instructions which access segment registers will also generate #UD.&lt;/td&gt;
+      &lt;td&gt;Far &lt;code class=&quot;highlighter-rouge&quot;&gt;CALL&lt;/code&gt;, Far &lt;code class=&quot;highlighter-rouge&quot;&gt;JMP&lt;/code&gt;, Far &lt;code class=&quot;highlighter-rouge&quot;&gt;RET&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;INT n&lt;/code&gt;/&lt;code class=&quot;highlighter-rouge&quot;&gt;INTO&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;IRET&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;LDS/LES/LFS/LGS/LSS&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;MOV&lt;/code&gt; to &lt;code class=&quot;highlighter-rouge&quot;&gt;DS/ES/SS/FS/GS&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;POP DS/ES/SS/FS/GS&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;SYSCALL&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;SYSENTER&lt;/code&gt;&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;Instructions that try to reenter the enclave. Gen- erates #GP.&lt;/td&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;ENCLU[EENTER]&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;ENCLU [ERESUME]&lt;/code&gt;&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;p&gt;In this post, I will talk about how to work around this limitation of enclave 
+programming &lt;em&gt;gracefully&lt;/em&gt;. In particular, I choose file I/O inside enclave as an 
+illustrating example.&lt;/p&gt;
+
+&lt;h2 id=&quot;ocalls&quot;&gt;OCalls&lt;/h2&gt;
+
+&lt;p&gt;There are two important types of function calls that are relevant to SGX— 
+&lt;em&gt;ECalls&lt;/em&gt; and &lt;em&gt;OCalls&lt;/em&gt;. An ECall is a (trusted) function call that enters an 
+enclave; while an OCall is a(n) (untrusted) function calls that leaves an 
+enclave. In order to perform privileged or I/O operations in an enclave, what 
+we are gonna do is essentially making OCalls. Initiated from within enclave 
+yet executed outside enclave, OCalls can be implemented using any CPU 
+instructions, and are available for enclaves. Thus, OCalls provide access 
+points that enable us to use operating system capabilities outside the 
+enclave such as system calls, I/O operations, and so on.&lt;/p&gt;
+
+&lt;p&gt;OCalls (as well as ECalls) are defined in a special syntax called &lt;strong&gt;Enclave 
+Definition Language (EDL)&lt;/strong&gt;. The code below shows what an EDL file looks like:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-cpp&quot; data-lang=&quot;cpp&quot;&gt;&lt;span class=&quot;n&quot;&gt;enclave&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+     &lt;span class=&quot;cm&quot;&gt;/* ECall functions, trusted functions that will be executed inside enclave */&lt;/span&gt;
+     &lt;span class=&quot;n&quot;&gt;trusted&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+          &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;sample_ecall&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;len&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;out&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;size&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;len&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;buf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+     &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+     &lt;span class=&quot;cm&quot;&gt;/* OCall functions, untrusted functions that will be executed outside enclave */&lt;/span&gt;
+     &lt;span class=&quot;n&quot;&gt;untrusted&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+          &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;sample_ocall&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;len&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;in&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;size&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;len&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;char&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+     &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Note that evoking an OCall would trigger the CPU to switch between enclave 
+mode and user mode, which comes with certain overhead. Moreover, OCalls can 
+make the calling enclave vunerable to various attacks. Therefore, from either 
+a performance or security perspective, OCall should be used with caution.&lt;/p&gt;
+
+&lt;p&gt;Next, I will show how to write user-friendly wrapper functions for OCalls. 
+Take I/O operations as an example.&lt;/p&gt;
+
+&lt;h2 id=&quot;library-patching-an-example&quot;&gt;Library Patching: An example&lt;/h2&gt;
+
+&lt;p&gt;Say you are going to port something like below into enclave:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-cpp&quot; data-lang=&quot;cpp&quot;&gt;&lt;span class=&quot;cp&quot;&gt;#include &amp;lt;stdio.h&amp;gt;
+&lt;/span&gt;
+&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;log_lvl&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;#define log(level, msg) {                       \
+    if (level &amp;lt; log_lvl) fprintf(stderr, msg);  \
+} &lt;/span&gt;&lt;span class=&quot;cm&quot;&gt;/* compiler error! */&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;The problem is that &lt;code class=&quot;highlighter-rouge&quot;&gt;stdio.h&lt;/code&gt; shipped with SGX SDK has neither &lt;code class=&quot;highlighter-rouge&quot;&gt;stderr&lt;/code&gt; nor 
+&lt;code class=&quot;highlighter-rouge&quot;&gt;fprintf&lt;/code&gt;. Apparently, comment out every occurences of log is not ideal. 
+Not only it’s tedious and error-prone, more importantly, it deprives you of 
+the ability of logging, which is critical for debug purpose. In contrast, 
+my proposed solution is quite simple and elegant, keeping your logging code 
+yet requiring only one-line modification (for each file):&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-cpp&quot; data-lang=&quot;cpp&quot;&gt;&lt;span class=&quot;cp&quot;&gt;#include “stdio.h” &lt;/span&gt;&lt;span class=&quot;cm&quot;&gt;/* use a patched header file! */&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+&lt;/span&gt;
+&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;log_lvl&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;#define log(level, msg) {                       \
+    if (level &amp;lt; log_lvl) fprintf(stderr, msg);  \
+} &lt;/span&gt;&lt;span class=&quot;cm&quot;&gt;/* compiler ok! */&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;The idea is simple: we write a patched version of c library header, which 
+includes the stuff that is missing. I call this technique &lt;em&gt;library patching&lt;/em&gt;. 
+The code below is our new &lt;code class=&quot;highlighter-rouge&quot;&gt;stdio.h&lt;/code&gt;:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-cpp&quot; data-lang=&quot;cpp&quot;&gt;&lt;span class=&quot;cm&quot;&gt;/* stdio.h */&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;#ifndef __STDIO_H
+#define __STDIO_H
+&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;#include &amp;lt;stdio.h&amp;gt;
+&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;#ifndef _INC_FCNTL
+#define _INC_FCNTL
+&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;#define O_RDONLY       0x0000  &lt;/span&gt;&lt;span class=&quot;cm&quot;&gt;/* open for reading only */&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+#define O_WRONLY       0x0001  &lt;/span&gt;&lt;span class=&quot;cm&quot;&gt;/* open for writing only */&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+#define O_RDWR         0x0002  &lt;/span&gt;&lt;span class=&quot;cm&quot;&gt;/* open for reading and writing */&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+#define O_APPEND       0x0008  &lt;/span&gt;&lt;span class=&quot;cm&quot;&gt;/* writes done at eof */&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;#define O_CREAT        0x0100  &lt;/span&gt;&lt;span class=&quot;cm&quot;&gt;/* create and open file */&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+#define O_TRUNC        0x0200  &lt;/span&gt;&lt;span class=&quot;cm&quot;&gt;/* open and truncate */&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+#define O_EXCL         0x0400  &lt;/span&gt;&lt;span class=&quot;cm&quot;&gt;/* open only if file doesn't already exist */&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;#define O_TEXT         0x4000  &lt;/span&gt;&lt;span class=&quot;cm&quot;&gt;/* file mode is text (translated) */&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+#define O_BINARY       0x8000  &lt;/span&gt;&lt;span class=&quot;cm&quot;&gt;/* file mode is binary (untranslated) */&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+#define O_WTEXT        0x10000 &lt;/span&gt;&lt;span class=&quot;cm&quot;&gt;/* file mode is UTF16 (translated) */&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+#define O_U16TEXT      0x20000 &lt;/span&gt;&lt;span class=&quot;cm&quot;&gt;/* file mode is UTF16 no BOM (translated) */&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+#define O_U8TEXT       0x40000 &lt;/span&gt;&lt;span class=&quot;cm&quot;&gt;/* file mode is UTF8  no BOM (translated) */&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;
+&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;#endif
+&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;#ifdef __cplusplus
+&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;extern&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;C&quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;#endif
+&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;extern&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;stdin&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;stdout&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;stderr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;open&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;char&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;filename&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;mode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;read&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;file&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;buf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;size&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;write&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;file&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;buf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;size&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;close&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;file&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+
+&lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fprintf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;file&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;char&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;format&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;...);&lt;/span&gt;
+
+&lt;span class=&quot;cp&quot;&gt;#ifdef __cplusplus
+&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;#endif
+&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;#endif&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;OCalls are our secret sauce of implementing the new &lt;code class=&quot;highlighter-rouge&quot;&gt;stdio&lt;/code&gt;:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-cpp&quot; data-lang=&quot;cpp&quot;&gt;&lt;span class=&quot;cm&quot;&gt;/* stdio.cpp */&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;#include &quot;stdio.h&quot;
+#include &amp;lt;stdarg.h&amp;gt;
+#include &amp;lt;string.h&amp;gt;
+#include “SampleEnclave_t.h&quot;
+&lt;/span&gt;
+&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;stdin&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;stdout&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;stderr&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;fprintf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;file&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;char&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fmt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;...)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;#define BUF_SIZE 1024
+&lt;/span&gt;    &lt;span class=&quot;kt&quot;&gt;char&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;buf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;BUFSIZ&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;sc&quot;&gt;'\0'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;va_list&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ap&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;va_start&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ap&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fmt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;vsnprintf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;buf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;BUFSIZ&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fmt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ap&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;va_end&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ap&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;size_t&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;len&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;strlen&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;buf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;write&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;file&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;buf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;len&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;open&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;char&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;filename&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;mode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ret&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ocall_open&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ret&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;filename&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;mode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;SGX_SUCCESS&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ret&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;read&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;file&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;buf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;size&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ret&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ocall_read&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ret&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;file&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;buf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;size&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;SGX_SUCCESS&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ret&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;write&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;file&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;buf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;size&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ret&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ocall_write&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ret&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;file&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;buf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;size&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;SGX_SUCCESS&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ret&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;close&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;file&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;ocall_close&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;file&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Since OCalls are special functions that cause CPU switch between enclave mode 
+and user mode (so do ECalls), they have to be defined in the project’s EDL file:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-cpp&quot; data-lang=&quot;cpp&quot;&gt;&lt;span class=&quot;cm&quot;&gt;/* SampleEnclave.edl */&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;enclave&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;trusted&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;c1&quot;&gt;// ...
+&lt;/span&gt;    &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+
+    &lt;span class=&quot;n&quot;&gt;untrusted&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ocall_open&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;([&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;in&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;string&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;char&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;filename&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;mode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ocall_read&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;file&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;out&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;size&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;size&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;buf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;size&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ocall_write&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;file&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;in&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;size&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;size&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;buf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;size&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ocall_close&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;file&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;All the code above are part of the enclave project. In the other project that 
+imports and uses the enclave,  we must give the implementation of the OCalls:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-cpp&quot; data-lang=&quot;cpp&quot;&gt;&lt;span class=&quot;cm&quot;&gt;/* ocall.cpp
+ * Assuming the code is compiled under windows
+ */&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;#include &quot;io.h&quot;
+&lt;/span&gt;
+&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;ocall_open&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;char&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;filename&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;mode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_open&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;filename&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;mode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;ocall_read&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;file&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;buf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;size&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_read&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;file&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;buf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;size&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;ocall_write&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;file&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;buf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;size&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_write&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;file&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;buf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;size&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;ocall_close&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;file&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;_close&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;file&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;That’s it! Congratulations. Now, following this pattern, you can add any missing 
+functionality to the incomplete C standard library of Intel SGX.&lt;/p&gt;
+</content>
+ </entry>
+ 
+ <entry>
+   <title>SSH Essentials in Three Steps</title>
+   <link href="http://tatetian.me/2015/06/15/ssh-essentials-in-three-steps/"/>
+   <updated>2015-06-15T00:00:00+08:00</updated>
+   <id>http://tatetian.me/2015/06/15/ssh-essentials-in-three-steps</id>
+   <content type="html">&lt;p&gt;I have been using Linux for almost ten years. And SSH has been an indespensible
+tool from the early days of my journey in exploring Linux. Throughout the
+years, I learned bits and pieces about SSH, from basic usage to advanced
+tricks. After recently reading a book named &lt;a href=&quot;http://www.amazon.com/SSH-Mastery-OpenSSH-PuTTY-Tunnels/dp/1470069717/&quot;&gt;SSH Mastery: OpenSSH, PuTTY,
+Tunnels and
+Keys&lt;/a&gt;,
+I am now confident that my knowledge about SSH covers most of its features.&lt;/p&gt;
+
+&lt;p&gt;While mastering all &lt;a href=&quot;https://vimeo.com/54505525&quot;&gt;the dark magic of SSH&lt;/a&gt; demands
+quite an effort, learning the essentials—the most useful tips and tricks— does
+not. In this post, I want to share with you the essentials of SSH.&lt;/p&gt;
+
+&lt;p&gt;(This post focuses on the open-source implementation of SSH, OpenSSH. Sorry, Windows folks!)&lt;/p&gt;
+
+&lt;h2 id=&quot;big-picture-the-three-steps&quot;&gt;Big Picture: The Three Steps&lt;/h2&gt;
+&lt;p&gt;Secure Shell, or SSH, is a network tool whose primary goal is to allow an user
+to login a machine &lt;em&gt;remotely&lt;/em&gt; and &lt;em&gt;securely&lt;/em&gt;.&lt;/p&gt;
+
+&lt;p&gt;To this aim, SSH works in the following three steps:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;Server validation&lt;/strong&gt;: SSH client checks if the SSH server being connected to is really what it claims (by looking up the entries in &lt;code class=&quot;highlighter-rouge&quot;&gt;~/.ssh/known_hosts&lt;/code&gt;);&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;User authentication&lt;/strong&gt;: SSH client tries to login the SSH server by providing user’s credential (e.g. public key in &lt;code class=&quot;highlighter-rouge&quot;&gt;~/.ssh/id_rsa.pub&lt;/code&gt;);&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Secure data transfer&lt;/strong&gt;: Data transfer occurs in the secure channel established between the SSH client and server. On the secure channel, various network protocols (e.g. ftp, X protocol, socket) can be supported.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;server-validation&quot;&gt;Server Validation&lt;/h3&gt;
+&lt;p&gt;To prevent a user from logining into a wrong machine accidentally, SSH client
+maintains the records of machine key signatures in &lt;code class=&quot;highlighter-rouge&quot;&gt;~/.ssh/known_hosts&lt;/code&gt;. When a
+SSH client connects to a machine for the first time, a new record (the IP and
+key signature of the machine), will be appended to the &lt;code class=&quot;highlighter-rouge&quot;&gt;known_hosts&lt;/code&gt; file.
+Later when the SSH client connects to the machine again, the key signature
+provided by the machine this time will be compared with the recorded signature.
+If they don’t match, the connection attempt will be terminated by SSH client.&lt;/p&gt;
+
+&lt;p&gt;In some situations, e.g. reinstallation of operating system or IP being
+occupied by another machine, the records in &lt;code class=&quot;highlighter-rouge&quot;&gt;~/.ssh/known_hosts&lt;/code&gt; can become
+invalid. The invalid records must be deleted from &lt;code class=&quot;highlighter-rouge&quot;&gt;known_hosts&lt;/code&gt; file so that
+the SSH client will not forbid users’ connection attempt.&lt;/p&gt;
+
+&lt;h3 id=&quot;user-authentication&quot;&gt;User Authentication&lt;/h3&gt;
+&lt;p&gt;Password is the most common way of user authentication. While using password is
+very intuitive, it may not be sufficient in some situations when, for example,
+password is not secure enough (if brute-force attack is a concern), or when
+entering password is tedious or even impossible (running automated scripts on a
+cluster of machines).&lt;/p&gt;
+
+&lt;p&gt;Public key authentication can provide higher security and more convenience. In
+a SSH server, the public keys that can be used to login are recorded in
+&lt;code class=&quot;highlighter-rouge&quot;&gt;~/.ssh/authorized_keys&lt;/code&gt;. With a private key that matches one of the public
+key, a SSH client can be granted access to the server.&lt;/p&gt;
+
+&lt;p&gt;Public key is the default authentication method of Linux instances in cloud
+(&lt;a href=&quot;aws.amazon.com&quot;&gt;Amazon AWS&lt;/a&gt; or &lt;a href=&quot;https://www.openstack.org/&quot;&gt;OpenStack&lt;/a&gt;). In a
+Web console of cloud platform, a cloud instance can be configured to using a
+public key specified by user, which will be inserted into
+&lt;code class=&quot;highlighter-rouge&quot;&gt;~/.ssh/authorized_keys&lt;/code&gt; file on boot. After launched, the instance can grant
+access to any SSH client that uses the corresponding private key. In OpenSSH
+client, this can be done by using the &lt;code class=&quot;highlighter-rouge&quot;&gt;-i&lt;/code&gt; parameter, for example,  &lt;code class=&quot;highlighter-rouge&quot;&gt;ssh -i
+identity.pem ubuntu@cloud-node&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;If the &lt;code class=&quot;highlighter-rouge&quot;&gt;-i&lt;/code&gt; parameter is not given to specify the file that contains the
+identity (private key), then OpenSSH client will try to read the identity from
+the default file &lt;code class=&quot;highlighter-rouge&quot;&gt;~/.ssh/id_XXX&lt;/code&gt;, whose public key counterpart is
+&lt;code class=&quot;highlighter-rouge&quot;&gt;~/.ssh/id_XXX.pub&lt;/code&gt; (where &lt;code class=&quot;highlighter-rouge&quot;&gt;XXX&lt;/code&gt; can be either &lt;code class=&quot;highlighter-rouge&quot;&gt;dsa&lt;/code&gt;, &lt;code class=&quot;highlighter-rouge&quot;&gt;ecdsa&lt;/code&gt; or &lt;code class=&quot;highlighter-rouge&quot;&gt;rsa&lt;/code&gt;,
+representing the type of key). Keys can be generated by &lt;code class=&quot;highlighter-rouge&quot;&gt;ssh-keygen&lt;/code&gt; utility.
+As it may become clear by now, appending the public key in your
+&lt;code class=&quot;highlighter-rouge&quot;&gt;~/.ssh/id_XXX.pub&lt;/code&gt; to &lt;code class=&quot;highlighter-rouge&quot;&gt;~/.ssh/authorized_keys&lt;/code&gt; on another machine can grant
+you access to the machine without entering password.&lt;/p&gt;
+
+&lt;h3 id=&quot;secure-data-transfer&quot;&gt;Secure Data Transfer&lt;/h3&gt;
+&lt;p&gt;Despite its initial goal of allowing a user to login a shell remotely and
+securely (as its name suggests), SSH can serve multiple purposes. With
+flexiblity and extensiblity in mind, SSH has been designed as a three-layer
+architecture, which includes the transport layer, the user authentication layer
+and the connection layer. A single SSH connection can host multiple channels of
+different types, each of which may serve different purpose. The net effect is
+that SSH is very versatile in usage, for example:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;Secure copy (&lt;code class=&quot;highlighter-rouge&quot;&gt;scp&lt;/code&gt;)&lt;/strong&gt;, which emulates the interface of cp command, is convenient to transfer files between machines;&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;SSH File Transfer Protocol (&lt;code class=&quot;highlighter-rouge&quot;&gt;sftp&lt;/code&gt;)&lt;/strong&gt;, which emulates the behaviour of FTP protocol, offers file transfer as well as directionary manipulation;&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;X forwarding (&lt;code class=&quot;highlighter-rouge&quot;&gt;-X&lt;/code&gt; parameter)&lt;/strong&gt;, allows a remote shell to run applications with GUI backed by X server;&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Port forwarding&lt;/strong&gt;, tunnels arbitrary TCP traffics.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;port-forwarding&quot;&gt;Port Forwarding&lt;/h2&gt;
+&lt;p&gt;Port forwarding is a very powerful yet somewhat confusing feature that deserves
+further elaboration.&lt;/p&gt;
+
+&lt;p&gt;The three types of port forwarding—Local forwarding, remote forwarding and
+dynamic forwarding— are similar but different.&lt;/p&gt;
+
+&lt;h3 id=&quot;local-forwarding&quot;&gt;Local Forwarding&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&quot;/public/img/ssh-essentials/local_forwarding.png&quot; alt=&quot;Local forwarding&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Local forwarding enables local-side machines  to connect to a remote-side
+machine through a SSH tunnel. This can be useful, for example, when you want to
+access  a database that only allows connection from localhost.&lt;/p&gt;
+
+&lt;p&gt;The option for local forwarding in OpenSSH client is &lt;code class=&quot;highlighter-rouge&quot;&gt;-L
+[local_address:]local_port:target_host:target_port&lt;/code&gt;. Set &lt;code class=&quot;highlighter-rouge&quot;&gt;local_address&lt;/code&gt; to &lt;code class=&quot;highlighter-rouge&quot;&gt;*&lt;/code&gt;
+if you want to the socket listening to port &lt;code class=&quot;highlighter-rouge&quot;&gt;local_port&lt;/code&gt; on all interfaces of
+the local-side machine running SSH client.&lt;/p&gt;
+
+&lt;h3 id=&quot;remote-forwarding&quot;&gt;Remote Forwarding&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&quot;/public/img/ssh-essentials/remote_forwarding.png&quot; alt=&quot;Remote Forwarding&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Conversely, remote forwarding gives remote-side machines the ability to connect
+to a client-side machine through a SSH tunnel. This is particularly useful when
+you want to temporaly publish a service on a machine that is behind a NAT
+router or firewall.&lt;/p&gt;
+
+&lt;p&gt;The option for remote forwarding in OpenSSH client is &lt;code class=&quot;highlighter-rouge&quot;&gt;-R
+[remote_address:]remote_port:target_host:target_port&lt;/code&gt;. Set &lt;code class=&quot;highlighter-rouge&quot;&gt;remote_address&lt;/code&gt; to
+&lt;code class=&quot;highlighter-rouge&quot;&gt;*&lt;/code&gt; if you want to the socket listening to port &lt;code class=&quot;highlighter-rouge&quot;&gt;remote_port&lt;/code&gt; on all interfaces
+of the remote-side machine running SSH server.&lt;/p&gt;
+
+&lt;h3 id=&quot;dynamic-forwarding&quot;&gt;Dynamic Forwarding&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&quot;/public/img/ssh-essentials/dynamic_forwarding.png&quot; alt=&quot;Dynamic Forwarding&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;While local/remote forwarding redirect all the traffic to one target—a
+specific port of a specific machine, dynamic forwarding gets rid of the
+restriction by providing a SOCK proxy interface.  This SSH-as-a-proxy feature
+is one of my favourite as it allows me (who lives in China) to penetrate the
+Great Firewall of China by redirecting the traffic of my browser to a SOCK
+proxy backed by a ssh connection to an Amazon AWS instance (Thanks Amazon for 
+your first-year free trial policy!).&lt;/p&gt;
+
+&lt;p&gt;The option for dynamic forwarding in OpenSSH client is &lt;code class=&quot;highlighter-rouge&quot;&gt;-D
+[local_address:]local_port.&lt;/code&gt; The parameter &lt;code class=&quot;highlighter-rouge&quot;&gt;local_address&lt;/code&gt; can be set to &lt;code class=&quot;highlighter-rouge&quot;&gt;*&lt;/code&gt;
+with same meaning as in local forwarding and remote forwarding.&lt;/p&gt;
+
+&lt;h2 id=&quot;closing-remarks&quot;&gt;Closing remarks&lt;/h2&gt;
+&lt;p&gt;This post is by no means comprehensive. Yet, I hope it gives an interesting
+introduction to the essentials of SSH, and clears up confusion about the port
+forwarding of SSH. One important topic that is missing in this post is &lt;a href=&quot;http://linux.die.net/man/5/ssh_config&quot;&gt;SSH
+config&lt;/a&gt;, which can really &lt;a href=&quot;http://nerderati.com/2011/03/17/simplify-your-life-with-an-ssh-config-file/&quot;&gt;simplify your
+life&lt;/a&gt;.&lt;/p&gt;
+</content>
+ </entry>
+ 
+ <entry>
+   <title>A&#42; Algorithm Saves Me $1 Per Day!</title>
+   <link href="http://tatetian.me/2015/01/30/a-star-algorithm-saves-me-1-dollar-per-day/"/>
+   <updated>2015-01-30T00:00:00+08:00</updated>
+   <id>http://tatetian.me/2015/01/30/a-star-algorithm-saves-me-1-dollar-per-day</id>
+   <content type="html">&lt;p&gt;&lt;img src=&quot;/public/img/SolveThis/solvethis-screenshots.png&quot; alt=&quot;Screenshots of SolveThis+&quot; title=&quot;Screenshots of SolveThis+&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;I love the puzzle. But I don’t want to pay for its solutions!&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://itunes.apple.com/cn/app/solvethis+/id905858795&quot;&gt;SolveThis+&lt;/a&gt; is a 
+puzzle with a simple goal: move all blocks (white) to a destination 
+(black-bordered) through obstacles (black), with restriction that all 
+the blocks move together.&lt;/p&gt;
+
+&lt;p&gt;This seemingly simple game is actually quite difficult for human players.
+The “one day, one challenge” policy of SolveThis+ may give you a hint:
+its creators must believe one challenge per day is enough for the appetite of a 
+human brain. The game can be freely downloadable (on both Android and iOS), 
+but it charges you one dollar for a solution!&lt;/p&gt;
+
+&lt;p&gt;Amazed by both the simplicity and difficulty of the game, I decided to write an 
+AI that solves the game automatically. The result is
+&lt;a href=&quot;https://github.com/tatetian/solvethis.js&quot;&gt;SolveThis.js&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h2 id=&quot;a-demo&quot;&gt;A Demo&lt;/h2&gt;
+&lt;p&gt;With SolveThis.js, you can solve the puzzle interactively or let the computer 
+automatically find the solution with minimal steps. Try the demo below.&lt;/p&gt;
+
+&lt;p data-height=&quot;625&quot; data-theme-id=&quot;dark&quot; data-slug-hash=&quot;GgvYqw&quot; data-default-tab=&quot;result&quot; data-user=&quot;tatetian&quot; data-embed-version=&quot;2&quot; class=&quot;codepen&quot;&gt;See the Pen &lt;a href=&quot;http://codepen.io/tatetian/pen/GgvYqw/&quot;&gt;SolveThis.js&lt;/a&gt; by Tate Tian (&lt;a href=&quot;http://codepen.io/tatetian&quot;&gt;@tatetian&lt;/a&gt;) on &lt;a href=&quot;http://codepen.io&quot;&gt;CodePen&lt;/a&gt;.&lt;/p&gt;
+&lt;script async=&quot;&quot; src=&quot;//assets.codepen.io/assets/embed/ei.js&quot;&gt;&lt;/script&gt;
+
+&lt;h2 id=&quot;how-it-works&quot;&gt;How it Works&lt;/h2&gt;
+
+&lt;h3 id=&quot;best-first-search&quot;&gt;Best-first search&lt;/h3&gt;
+
+&lt;p&gt;The puzzle of SolveThis+ resembles classic games, like reversi and chess, in 
+the sense that a series of moves have to be made and at the time of each move 
+one can’t easily tell what is the best decision. All the combination of 
+decisions at each move forms a tree-structured search space. (To simplify the 
+discussion, I intentionally ignore the fact that the search space is actually 
+a general directed graph rather than a tree.)&lt;/p&gt;
+
+&lt;p&gt;Depth-first and width-first are the two most common strategies to explore a tree.
+But these simple, brute-force methods are infeasible due to the huge search space.
+Fortunately, we have a third option: best-first search.&lt;/p&gt;
+
+&lt;p&gt;Best-first search explores a tree by expanding the most promising node chosen 
+according to some evaluation function. If the evaluation function is clever 
+enough, a best-first search can be far more efficient than a brute-force search 
+by exploring the “fruitful” part of the search space first.&lt;/p&gt;
+
+&lt;p&gt;The following code demonstrates a best-first search implemented in JavaScript:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-javascript&quot; data-lang=&quot;javascript&quot;&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;bestFirstSearch&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;initNode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;goalNode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;evalFunc&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// Maintains open nodes and its order&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;openNodes&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;PriorityQueue&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;();&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// Start searching from initNode&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;initNode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;evalFunc&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;initNode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;openNodes&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;push&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;initNode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;while&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;c1&quot;&gt;// Examine the most promising node&lt;/span&gt;
+        &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;node&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;openNodes&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;pop&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;();&lt;/span&gt;
+        
+        &lt;span class=&quot;c1&quot;&gt;// No solution found&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;node&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;c1&quot;&gt;// A solution found&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;node&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;goalNode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;node&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;path&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;();&lt;/span&gt;
+
+        &lt;span class=&quot;c1&quot;&gt;// Extend the search space&lt;/span&gt;
+        &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;children&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;node&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;getChildren&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;();&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;ci&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;ci&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;children&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;length&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;ci&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;++&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;newNode&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;children&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;ci&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+            &lt;span class=&quot;c1&quot;&gt;// Evaluate the `goodness` of a new node&lt;/span&gt;
+            &lt;span class=&quot;nx&quot;&gt;newNode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;evalFunc&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;newNode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+            &lt;span class=&quot;nx&quot;&gt;openNodes&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;push&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;newNode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h3 id=&quot;evaluation-functions&quot;&gt;Evaluation functions&lt;/h3&gt;
+&lt;p&gt;A best-first search expands the most promising node at each round. By ‘most 
+promising’, we mean the lowest expected total cost (i.e. steps in SolveThis+). 
+Thus, given a partial solution (&lt;code class=&quot;highlighter-rouge&quot;&gt;node&lt;/code&gt; in sample code below), the evaluation function returns 
+an estimated total cost that consists of two parts— the past cost (&lt;code class=&quot;highlighter-rouge&quot;&gt;p&lt;/code&gt;) and the 
+future cost (&lt;code class=&quot;highlighter-rouge&quot;&gt;f&lt;/code&gt;)— as shown below:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-js&quot; data-lang=&quot;js&quot;&gt;&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;evalFunc&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;node&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;p&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;...;&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// Known cost: initNode --&amp;gt; node&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;f&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;...;&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// Unknown cost: node --&amp;gt; goalNode &lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;p&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Interestingly, a depth-first search or width-first search can be seen as
+a best-first search with a special evaluation function:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-js&quot; data-lang=&quot;js&quot;&gt;&lt;span class=&quot;c1&quot;&gt;// Eval func of depth-first search&lt;/span&gt;
+&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;evalFuncDFS&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;node&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;p&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;node&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;depth&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;f&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;p&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;// Eval func of width-first search&lt;/span&gt;
+&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;evalFuncWFS&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;node&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;p&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;node&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;depth&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;f&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;p&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h3 id=&quot;a42-algorithm&quot;&gt;A* algorithm&lt;/h3&gt;
+&lt;p&gt;A* algorithm is widely used in graph traversal for its optimality and 
+efficiency. Despite some technical details, it is essentially a best-first 
+search that employs an &lt;em&gt;admissible&lt;/em&gt; heuristic, i.e.,&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;A* algorithm = best-first search + admissible heuristic.&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;A heuristic refers to a technique that finds good enough solutions. The 
+introduction of heuristic is used to evaluate the expected future cost of a 
+partial solution. This is necessary as figuring out the exact future cost is 
+too costly.&lt;/p&gt;
+
+&lt;p&gt;So what is an admissibile heuristic? An admissible heuristic is one that never 
+overestimates the expected future cost of a node; that is to say, the cost 
+estimated by an admissible heuristic is always smaller than the optimal. Thus, 
+when a best-first search that employs an admissible heuristic finds a 
+solution, we can be sure that the solution is optimal as all
+possible solutions with smaller cost must have already been examined and ruled 
+out.&lt;/p&gt;
+
+&lt;p&gt;A heuristic is the core of A* algorithm; A* algorithm only works as 
+well as the heuristic it employs. So next we shall discuss the design of 
+heuristics in SolveThis.js.&lt;/p&gt;
+
+&lt;h3 id=&quot;the-heuristics&quot;&gt;The heuristics&lt;/h3&gt;
+&lt;p&gt;Our starting point is the following observations:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;An admissible heuristic is to give a lower bound of (optimal) solutions, and
+the greater the lower bound, the better;&lt;/li&gt;
+  &lt;li&gt;Given &lt;script type=&quot;math/tex&quot;&gt;b&lt;/script&gt; different lower bound functions &lt;script type=&quot;math/tex&quot;&gt;f_1, f_2, \cdots, f_b&lt;/script&gt;, we can 
+use &lt;script type=&quot;math/tex&quot;&gt;\max(f_1, f_2, \cdots, f_b)&lt;/script&gt; as improved lower bound;&lt;/li&gt;
+  &lt;li&gt;One way to obtain a lower bound is to solve a simpler problem whose 
+solution is also one to the initial problem.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Inspired by these observations, I came up with a strategy that constructs
+a series of simpler problems, and use the maximum of their lower bounds as the 
+lower bound for the initial problem.&lt;/p&gt;
+
+&lt;p&gt;In order to construct the simpler problems, two more general definitions of 
+original SolveThis+ problem are introduced:&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;Definition of a &lt;script type=&quot;math/tex&quot;&gt;k&lt;/script&gt;-block SolveThis+ problem of &lt;script type=&quot;math/tex&quot;&gt;n&lt;/script&gt; goals (&lt;script type=&quot;math/tex&quot;&gt;k \le n&lt;/script&gt;).&lt;/em&gt; 
+On a board with &lt;script type=&quot;math/tex&quot;&gt;k&lt;/script&gt; blocks (and its initial positions), &lt;script type=&quot;math/tex&quot;&gt;n&lt;/script&gt; goal positions 
+and some obstacles, find a way to move blocks through obstacles to any &lt;script type=&quot;math/tex&quot;&gt;k&lt;/script&gt; 
+out of &lt;script type=&quot;math/tex&quot;&gt;n&lt;/script&gt; goal positions.&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;Definition of a &lt;script type=&quot;math/tex&quot;&gt;k&lt;/script&gt;-goal SolveThis+ problem of &lt;script type=&quot;math/tex&quot;&gt;n&lt;/script&gt; blocks (&lt;script type=&quot;math/tex&quot;&gt;k \le n&lt;/script&gt;).&lt;/em&gt; 
+On a board with &lt;script type=&quot;math/tex&quot;&gt;n&lt;/script&gt; blocks (and its initial positions), &lt;script type=&quot;math/tex&quot;&gt;k&lt;/script&gt; goal positions 
+and some obstacles, find a way to move any &lt;script type=&quot;math/tex&quot;&gt;k&lt;/script&gt; out of &lt;script type=&quot;math/tex&quot;&gt;n&lt;/script&gt; blocks through 
+obstacles to goal positions.&lt;/p&gt;
+
+&lt;p&gt;To give a concrete example, consider a SolveThis+ problem as below (and for the 
+convenience of illustration, a smaller board of size 4x4 is used):
+&lt;img src=&quot;/public/img/SolveThis/simpler-problem.png&quot; alt=&quot;A simpler problem&quot; title=&quot;A simpler problem&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;According to the definition, its &lt;script type=&quot;math/tex&quot;&gt;1&lt;/script&gt;-block versions are: 
+&lt;img src=&quot;/public/img/SolveThis/simpler-problem-1-block.png&quot; alt=&quot;A 1-block version of the simpler problem&quot; title=&quot;A 1-block version of the simpler problem&quot; /&gt;
+and its &lt;script type=&quot;math/tex&quot;&gt;1&lt;/script&gt;-goal versions are: 
+&lt;img src=&quot;/public/img/SolveThis/simpler-problem-1-goal.png&quot; alt=&quot;A 1-goal version of the simpler problem&quot; title=&quot;A 1-goal version of the simpler problem&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Its &lt;script type=&quot;math/tex&quot;&gt;2&lt;/script&gt;-block versions are: 
+&lt;img src=&quot;/public/img/SolveThis/simpler-problem-2-block.png&quot; alt=&quot;A 2-block version of the simpler problem&quot; title=&quot;A 2-block version of the simpler problem&quot; /&gt;
+and its &lt;script type=&quot;math/tex&quot;&gt;2&lt;/script&gt;-goal versions are: 
+&lt;img src=&quot;/public/img/SolveThis/simpler-problem-2-goal.png&quot; alt=&quot;A 2-goal version of the simpler problem&quot; title=&quot;A 2-goal version of the simpler problem&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;And &lt;script type=&quot;math/tex&quot;&gt;3&lt;/script&gt;-block and &lt;script type=&quot;math/tex&quot;&gt;3&lt;/script&gt;-goal version is just the original problem itself.&lt;/p&gt;
+
+&lt;p&gt;In general, for a SolveThis+ problem of &lt;script type=&quot;math/tex&quot;&gt;n&lt;/script&gt; blocks, there are &lt;script type=&quot;math/tex&quot;&gt;C_n^k&lt;/script&gt; 
+&lt;script type=&quot;math/tex&quot;&gt;k&lt;/script&gt;-block (or &lt;script type=&quot;math/tex&quot;&gt;k&lt;/script&gt;-goal) problems, each of which seems to take at least 
+&lt;script type=&quot;math/tex&quot;&gt;P_n^k&lt;/script&gt; time to find a &lt;em&gt;decent&lt;/em&gt; lower bound. For example, when &lt;script type=&quot;math/tex&quot;&gt;k=1&lt;/script&gt;, the 
+optimal solution can be obtained in &lt;script type=&quot;math/tex&quot;&gt;O(n)&lt;/script&gt;-time if preprocessed using 
+&lt;a href=&quot;http://en.wikipedia.org/wiki/Dijkstra%27s_algorithm&quot;&gt;Dijkstra’s algorithm&lt;/a&gt;. 
+Although a simplified problem with a larger &lt;script type=&quot;math/tex&quot;&gt;k&lt;/script&gt; can be a better approximation
+to the original problem, thus leading to a more accurate estimation, it takes 
+much longer time. Therefore, to tradeoff between accuracy and execution time 
+(as all heuristics do), the heuristics implemented in SolveThis.js only 
+consider a fraction of &lt;script type=&quot;math/tex&quot;&gt;k&lt;/script&gt;-block or &lt;script type=&quot;math/tex&quot;&gt;k&lt;/script&gt;-goal problems, where &lt;script type=&quot;math/tex&quot;&gt;k \le 4&lt;/script&gt;.&lt;/p&gt;
+
+&lt;h2 id=&quot;project&quot;&gt;Project&lt;/h2&gt;
+&lt;p&gt;Interested in more implementation details or have an idea to improve the 
+algorithm? Welcome to visit 
+&lt;a href=&quot;https://github.com/tatetian/solvethis.js&quot;&gt;SolveThis.js&lt;/a&gt; on Github.&lt;/p&gt;
+
+</content>
+ </entry>
+ 
+ <entry>
+   <title>Why Should I (or Any Tech Talent) Start Blogging?</title>
+   <link href="http://tatetian.me/2015/01/15/why-should-i-or-any-tech-telant-start-blogging/"/>
+   <updated>2015-01-15T00:00:00+08:00</updated>
+   <id>http://tatetian.me/2015/01/15/why-should-i-or-any-tech-telant-start-blogging</id>
+   <content type="html">&lt;p&gt;The decision to start blogging is not an easy one for me.&lt;/p&gt;
+
+&lt;p&gt;Indeed, I always enjoy reading technical blogs. And some of the authors that I
+really admire have written excellent posts on the benefits of blogging. Yet,  a
+personal blog demands a great effort— gather materials, forge ideas, structure
+content, make an argument, not to mention the difficulty of writing in English
+as a second language  — all of which are really intimidating to me. But somehow
+I know that this is the right thing for me to do. So in this very first post, I
+shall talk myself, and hopefully you (if you are a geek) as well,  into
+blogging.&lt;/p&gt;
+
+&lt;h2 id=&quot;a-permanent-exhibition-of-ones-works&quot;&gt;A permanent exhibition of one’s works&lt;/h2&gt;
+
+&lt;p&gt;A personal technical website is like a permanent exhibition of one’s works.&lt;/p&gt;
+
+&lt;p&gt;Talking about exhibition, no one is more good at it than artists. I have quite
+a few good friends who study arts. One thing that I admire the art people for
+is they have a good tradition of exhibition. Artists and designers are trained
+in an environment that encourages, rewards or even demands them to present
+their works to other artists or the public. Surely, the art community must have
+realized, for ages, the positive effects of exhibition: it can be a motivator
+to improve work to perfection, an opportunity to get constructive feedbacks, or
+even better an achievement that makes you feel that every bit of your effort
+eventually pays off.&lt;/p&gt;
+
+&lt;p&gt;Unfortunately, our computer science education is way behind in this aspect, at
+least in the top computer science department of the most prestigious university
+in China. We are well trained on solving problems on our own, but not sharing
+results with others. Very few of us bother to share our knowledge and insights
+publicly, like writing a technical blog. Maybe it’s the common pitfall of
+engineering educations. Maybe it’s the shyness of Chinese people. Whatever the
+reasons, most of us are just too lazy, too shy or too stupid, to show the best
+of our expertise.&lt;/p&gt;
+
+&lt;p&gt;We are living in an era that values technology talents who has an artistic
+mindset. Technology and art. Steve Jobs married one to the other. &lt;em&gt;&lt;a href=&quot;http://www.amazon.com/dp/1449389554/&quot;&gt;Hackers and
+Painters&lt;/a&gt;&lt;/em&gt;. Paul Graham made himself both.
+Every serious designer have his/her own portfolio website. So should a geek.&lt;/p&gt;
+
+&lt;h2 id=&quot;expressing-myself-the-desire-and-fear&quot;&gt;Expressing myself: the desire and fear&lt;/h2&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;“I want freedom for the full expression of my personality.” ― Mahatma Gandhi&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;The innate desire of expressing oneself is within everyone. I am no exception.&lt;/p&gt;
+
+&lt;p&gt;Blogging can be an ideal way to express personal opinions. I know that I am
+talented and well-educated, having valuable experience and novel insights that
+can be shared with the world. And somehow I have already convinced myself that
+blogging is a decision that I would never regret. Yet still I am  reluctant to
+blog. I fear of expressing myself—&lt;/p&gt;
+
+&lt;p&gt;For the curse of perfectionist.&lt;/p&gt;
+
+&lt;p&gt;When I was younger, I often claimed myself as a perfectionist,
+&lt;em&gt;proudly&lt;/em&gt;. To me, perfectionism used to be equivalent to striving for
+excellence. Now that I am more mature, I know that perfectionism can be
+detrimental: overly high standards, harsh self-criticism, and excessive concerns
+regarding others’ evaluation. It is this dark side of my personality that is
+bombarding my mind with doubts: “Is your English writing good enough? Can your
+posts make any difference to the readers? What if you blunder and make a fool
+of yourself?”&lt;/p&gt;
+
+&lt;p&gt;“But, so what?” the other half of me responds, “Yes, I am likely to suck at first, but
+over time I will get better, &lt;em&gt;definitely&lt;/em&gt;. ”&lt;/p&gt;
+
+&lt;p&gt;Blogging is a fullfillment to the need of expressing myself, and maybe more
+importantly, a treatment to my perfectionism.&lt;/p&gt;
+
+&lt;h2 id=&quot;final-thoughts&quot;&gt;Final thoughts&lt;/h2&gt;
+
+&lt;p&gt;This post is mainly about my rationale of blogging, which, given the fact that
+everyone has different characteristics and needs, may not be adequate to you.
+If that is the case, the I strongly recommend the following excellent posts,
+which may shed more light on this topic for you:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;a href=&quot;http://nathanmarz.com/&quot;&gt;Nathan Marz&lt;/a&gt;’s &lt;a href=&quot;http://nathanmarz.com/blog/break-into-silicon-valley-with-a-blog-1.html&quot;&gt;Break into Silicon Valley with a blog&lt;/a&gt;;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://joshldavis.com&quot;&gt;Josh Davis&lt;/a&gt;’s &lt;a href=&quot;https://joshldavis.com/2013/05/11/beginning-of-a-beautiful-blogship/&quot;&gt;The Beginning of a Beautiful Blogship&lt;/a&gt;;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;http://www.forbes.com/sites/danreich/2011/10/15/9-reasons-you-should-blog/&quot;&gt;9 Reasons You Should Blog&lt;/a&gt; on Forbes.&lt;/li&gt;
+&lt;/ul&gt;
+</content>
+ </entry>
+ 
+
+</feed>

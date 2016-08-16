@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
+
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+<!-- Enable responsiveness on mobile devices-->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+<title>
+
+  A&#42; Algorithm Saves Me $1 Per Day! &middot; Tate Tian
+
+</title>
+
+<!-- CSS -->
+<link rel="stylesheet" href="/public/css/site.css">
+
+<!-- Icons -->
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/public/apple-touch-icon-144-precomposed.png">
+<link rel="shortcut icon" href="/public/favicon.ico">
+
+<!-- RSS -->
+<link rel="alternate" type="application/rss+xml" title="RSS" href="/atom.xml">
+<link rel="stylesheet" href="/public/css/katex.min.css">
+
+
+  <body>
+
+    <div class="sidebar close">
+  <div class="container content">
+  </div>
+</div>
+<div class="logo-btn">
+    <div class="logo">
+        <div class="bar1"></div>
+        <div class="bar2"></div>
+    </div>
+</div>
+
+
+    <div class="content container">
+      <div class="post">
+    <h1 class="post-title">A&#42; Algorithm Saves Me $1 Per Day!</h1>
+    <span class="post-date">30 Jan 2015</span>
+    <p><img src="/public/img/SolveThis/solvethis-screenshots.png" alt="Screenshots of SolveThis+" title="Screenshots of SolveThis+" /></p>
+
+<p>I love the puzzle. But I don’t want to pay for its solutions!</p>
+
+<p><a href="https://itunes.apple.com/cn/app/solvethis+/id905858795">SolveThis+</a> is a 
+puzzle with a simple goal: move all blocks (white) to a destination 
+(black-bordered) through obstacles (black), with restriction that all 
+the blocks move together.</p>
+
+<p>This seemingly simple game is actually quite difficult for human players.
+The “one day, one challenge” policy of SolveThis+ may give you a hint:
+its creators must believe one challenge per day is enough for the appetite of a 
+human brain. The game can be freely downloadable (on both Android and iOS), 
+but it charges you one dollar for a solution!</p>
+
+<p>Amazed by both the simplicity and difficulty of the game, I decided to write an 
+AI that solves the game automatically. The result is
+<a href="https://github.com/tatetian/solvethis.js">SolveThis.js</a>.</p>
+
+<h2 id="a-demo">A Demo</h2>
+<p>With SolveThis.js, you can solve the puzzle interactively or let the computer 
+automatically find the solution with minimal steps. Try the demo below.</p>
+
+<p data-height="625" data-theme-id="dark" data-slug-hash="GgvYqw" data-default-tab="result" data-user="tatetian" data-embed-version="2" class="codepen">See the Pen <a href="http://codepen.io/tatetian/pen/GgvYqw/">SolveThis.js</a> by Tate Tian (<a href="http://codepen.io/tatetian">@tatetian</a>) on <a href="http://codepen.io">CodePen</a>.</p>
+<script async="" src="//assets.codepen.io/assets/embed/ei.js"></script>
+
+<h2 id="how-it-works">How it Works</h2>
+
+<h3 id="best-first-search">Best-first search</h3>
+
+<p>The puzzle of SolveThis+ resembles classic games, like reversi and chess, in 
+the sense that a series of moves have to be made and at the time of each move 
+one can’t easily tell what is the best decision. All the combination of 
+decisions at each move forms a tree-structured search space. (To simplify the 
+discussion, I intentionally ignore the fact that the search space is actually 
+a general directed graph rather than a tree.)</p>
+
+<p>Depth-first and width-first are the two most common strategies to explore a tree.
+But these simple, brute-force methods are infeasible due to the huge search space.
+Fortunately, we have a third option: best-first search.</p>
+
+<p>Best-first search explores a tree by expanding the most promising node chosen 
+according to some evaluation function. If the evaluation function is clever 
+enough, a best-first search can be far more efficient than a brute-force search 
+by exploring the “fruitful” part of the search space first.</p>
+
+<p>The following code demonstrates a best-first search implemented in JavaScript:</p>
+
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">function</span> <span class="nx">bestFirstSearch</span><span class="p">(</span><span class="nx">initNode</span><span class="p">,</span> <span class="nx">goalNode</span><span class="p">,</span> <span class="nx">evalFunc</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// Maintains open nodes and its order</span>
+    <span class="kd">var</span> <span class="nx">openNodes</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">PriorityQueue</span><span class="p">();</span>
+    <span class="c1">// Start searching from initNode</span>
+    <span class="nx">initNode</span><span class="p">.</span><span class="nx">val</span> <span class="o">=</span> <span class="nx">evalFunc</span><span class="p">(</span><span class="nx">initNode</span><span class="p">);</span>
+    <span class="nx">openNodes</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">initNode</span><span class="p">);</span>
+    <span class="k">while</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// Examine the most promising node</span>
+        <span class="kd">var</span> <span class="nx">node</span> <span class="o">=</span> <span class="nx">openNodes</span><span class="p">.</span><span class="nx">pop</span><span class="p">();</span>
+        
+        <span class="c1">// No solution found</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nx">node</span> <span class="o">==</span> <span class="kc">null</span><span class="p">)</span> <span class="k">return</span> <span class="kc">null</span><span class="p">;</span>
+        <span class="c1">// A solution found</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nx">node</span> <span class="o">==</span> <span class="nx">goalNode</span><span class="p">)</span> <span class="k">return</span> <span class="nx">node</span><span class="p">.</span><span class="nx">path</span><span class="p">();</span>
+
+        <span class="c1">// Extend the search space</span>
+        <span class="kd">var</span> <span class="nx">children</span> <span class="o">=</span> <span class="nx">node</span><span class="p">.</span><span class="nx">getChildren</span><span class="p">();</span>
+        <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">ci</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">ci</span> <span class="o">&lt;</span> <span class="nx">children</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="nx">ci</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+            <span class="kd">var</span> <span class="nx">newNode</span> <span class="o">=</span> <span class="nx">children</span><span class="p">[</span><span class="nx">ci</span><span class="p">];</span>
+            <span class="c1">// Evaluate the `goodness` of a new node</span>
+            <span class="nx">newNode</span><span class="p">.</span><span class="nx">val</span> <span class="o">=</span> <span class="nx">evalFunc</span><span class="p">(</span><span class="nx">newNode</span><span class="p">);</span>
+            <span class="nx">openNodes</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">newNode</span><span class="p">);</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span></code></pre></figure>
+
+<h3 id="evaluation-functions">Evaluation functions</h3>
+<p>A best-first search expands the most promising node at each round. By ‘most 
+promising’, we mean the lowest expected total cost (i.e. steps in SolveThis+). 
+Thus, given a partial solution (<code class="highlighter-rouge">node</code> in sample code below), the evaluation function returns 
+an estimated total cost that consists of two parts— the past cost (<code class="highlighter-rouge">p</code>) and the 
+future cost (<code class="highlighter-rouge">f</code>)— as shown below:</p>
+
+<figure class="highlight"><pre><code class="language-js" data-lang="js"><span class="kd">function</span> <span class="nx">evalFunc</span><span class="p">(</span><span class="nx">node</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">p</span> <span class="o">=</span> <span class="p">...;</span> <span class="c1">// Known cost: initNode --&gt; node</span>
+    <span class="kd">var</span> <span class="nx">f</span> <span class="o">=</span> <span class="p">...;</span> <span class="c1">// Unknown cost: node --&gt; goalNode </span>
+    <span class="k">return</span> <span class="nx">p</span> <span class="o">+</span> <span class="nx">f</span><span class="p">;</span>
+<span class="p">}</span></code></pre></figure>
+
+<p>Interestingly, a depth-first search or width-first search can be seen as
+a best-first search with a special evaluation function:</p>
+
+<figure class="highlight"><pre><code class="language-js" data-lang="js"><span class="c1">// Eval func of depth-first search</span>
+<span class="kd">function</span> <span class="nx">evalFuncDFS</span><span class="p">(</span><span class="nx">node</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">p</span> <span class="o">=</span> <span class="o">-</span> <span class="nx">node</span><span class="p">.</span><span class="nx">depth</span><span class="p">;</span>
+    <span class="kd">var</span> <span class="nx">f</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">return</span> <span class="nx">p</span> <span class="o">+</span> <span class="nx">f</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// Eval func of width-first search</span>
+<span class="kd">function</span> <span class="nx">evalFuncWFS</span><span class="p">(</span><span class="nx">node</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">p</span> <span class="o">=</span> <span class="nx">node</span><span class="p">.</span><span class="nx">depth</span><span class="p">;</span>
+    <span class="kd">var</span> <span class="nx">f</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">return</span> <span class="nx">p</span> <span class="o">+</span> <span class="nx">f</span><span class="p">;</span>
+<span class="p">}</span></code></pre></figure>
+
+<h3 id="a42-algorithm">A* algorithm</h3>
+<p>A* algorithm is widely used in graph traversal for its optimality and 
+efficiency. Despite some technical details, it is essentially a best-first 
+search that employs an <em>admissible</em> heuristic, i.e.,</p>
+
+<p><strong>A* algorithm = best-first search + admissible heuristic.</strong></p>
+
+<p>A heuristic refers to a technique that finds good enough solutions. The 
+introduction of heuristic is used to evaluate the expected future cost of a 
+partial solution. This is necessary as figuring out the exact future cost is 
+too costly.</p>
+
+<p>So what is an admissibile heuristic? An admissible heuristic is one that never 
+overestimates the expected future cost of a node; that is to say, the cost 
+estimated by an admissible heuristic is always smaller than the optimal. Thus, 
+when a best-first search that employs an admissible heuristic finds a 
+solution, we can be sure that the solution is optimal as all
+possible solutions with smaller cost must have already been examined and ruled 
+out.</p>
+
+<p>A heuristic is the core of A* algorithm; A* algorithm only works as 
+well as the heuristic it employs. So next we shall discuss the design of 
+heuristics in SolveThis.js.</p>
+
+<h3 id="the-heuristics">The heuristics</h3>
+<p>Our starting point is the following observations:</p>
+
+<ul>
+  <li>An admissible heuristic is to give a lower bound of (optimal) solutions, and
+the greater the lower bound, the better;</li>
+  <li>Given <script type="math/tex">b</script> different lower bound functions <script type="math/tex">f_1, f_2, \cdots, f_b</script>, we can 
+use <script type="math/tex">\max(f_1, f_2, \cdots, f_b)</script> as improved lower bound;</li>
+  <li>One way to obtain a lower bound is to solve a simpler problem whose 
+solution is also one to the initial problem.</li>
+</ul>
+
+<p>Inspired by these observations, I came up with a strategy that constructs
+a series of simpler problems, and use the maximum of their lower bounds as the 
+lower bound for the initial problem.</p>
+
+<p>In order to construct the simpler problems, two more general definitions of 
+original SolveThis+ problem are introduced:</p>
+
+<p><em>Definition of a <script type="math/tex">k</script>-block SolveThis+ problem of <script type="math/tex">n</script> goals (<script type="math/tex">k \le n</script>).</em> 
+On a board with <script type="math/tex">k</script> blocks (and its initial positions), <script type="math/tex">n</script> goal positions 
+and some obstacles, find a way to move blocks through obstacles to any <script type="math/tex">k</script> 
+out of <script type="math/tex">n</script> goal positions.</p>
+
+<p><em>Definition of a <script type="math/tex">k</script>-goal SolveThis+ problem of <script type="math/tex">n</script> blocks (<script type="math/tex">k \le n</script>).</em> 
+On a board with <script type="math/tex">n</script> blocks (and its initial positions), <script type="math/tex">k</script> goal positions 
+and some obstacles, find a way to move any <script type="math/tex">k</script> out of <script type="math/tex">n</script> blocks through 
+obstacles to goal positions.</p>
+
+<p>To give a concrete example, consider a SolveThis+ problem as below (and for the 
+convenience of illustration, a smaller board of size 4x4 is used):
+<img src="/public/img/SolveThis/simpler-problem.png" alt="A simpler problem" title="A simpler problem" /></p>
+
+<p>According to the definition, its <script type="math/tex">1</script>-block versions are: 
+<img src="/public/img/SolveThis/simpler-problem-1-block.png" alt="A 1-block version of the simpler problem" title="A 1-block version of the simpler problem" />
+and its <script type="math/tex">1</script>-goal versions are: 
+<img src="/public/img/SolveThis/simpler-problem-1-goal.png" alt="A 1-goal version of the simpler problem" title="A 1-goal version of the simpler problem" /></p>
+
+<p>Its <script type="math/tex">2</script>-block versions are: 
+<img src="/public/img/SolveThis/simpler-problem-2-block.png" alt="A 2-block version of the simpler problem" title="A 2-block version of the simpler problem" />
+and its <script type="math/tex">2</script>-goal versions are: 
+<img src="/public/img/SolveThis/simpler-problem-2-goal.png" alt="A 2-goal version of the simpler problem" title="A 2-goal version of the simpler problem" /></p>
+
+<p>And <script type="math/tex">3</script>-block and <script type="math/tex">3</script>-goal version is just the original problem itself.</p>
+
+<p>In general, for a SolveThis+ problem of <script type="math/tex">n</script> blocks, there are <script type="math/tex">C_n^k</script> 
+<script type="math/tex">k</script>-block (or <script type="math/tex">k</script>-goal) problems, each of which seems to take at least 
+<script type="math/tex">P_n^k</script> time to find a <em>decent</em> lower bound. For example, when <script type="math/tex">k=1</script>, the 
+optimal solution can be obtained in <script type="math/tex">O(n)</script>-time if preprocessed using 
+<a href="http://en.wikipedia.org/wiki/Dijkstra%27s_algorithm">Dijkstra’s algorithm</a>. 
+Although a simplified problem with a larger <script type="math/tex">k</script> can be a better approximation
+to the original problem, thus leading to a more accurate estimation, it takes 
+much longer time. Therefore, to tradeoff between accuracy and execution time 
+(as all heuristics do), the heuristics implemented in SolveThis.js only 
+consider a fraction of <script type="math/tex">k</script>-block or <script type="math/tex">k</script>-goal problems, where <script type="math/tex">k \le 4</script>.</p>
+
+<h2 id="project">Project</h2>
+<p>Interested in more implementation details or have an idea to improve the 
+algorithm? Welcome to visit 
+<a href="https://github.com/tatetian/solvethis.js">SolveThis.js</a> on Github.</p>
+
+
+</div>
+
+    </div>
+    
+    <!-- Terminal -->
+<script src="/public/js/tateterm.min.js"></script>
+<script type="text/javascript">
+(function() {
+var sidebarEl = document.getElementsByClassName('sidebar')[0];
+var containerEl = sidebarEl.getElementsByClassName('container')[0];
+
+function getTermFitSize() {
+    var viewportWidth = Math.max(document.documentElement.clientWidth,
+                                 window.innerWidth || 0);
+    // use 16px font when the width of viewport is smaller than 830px
+    var charWidth = 11.4545;
+    var lineHeight = 27;
+    if (viewportWidth < 830) {
+        charWidth *= (16.0/18);
+        lineHeight *= (16.0/18);
+    }
+
+    var W = containerEl.clientWidth;
+    var H = containerEl.clientHeight;
+    var rows = Math.floor(H / lineHeight);
+    var cols = Math.floor(W / charWidth);
+    return {rows: rows, cols: cols};
+}
+
+var initTermSize = getTermFitSize();
+var term = new tateterm.Terminal(containerEl, {
+    cols: initTermSize.cols,
+    rows: initTermSize.rows,
+    useStyle: true,
+});
+// set red color to the exactly the same red as we use
+term._term.colors[1] = '#e62e25';
+var shell = new tateterm.Shell(term, {
+    promptTemplate: '%s$ ',
+    welcomeMsg: 'This is the tech blog of Tate Tian.\r\n' +
+            'To explore this website, use this terminal by clicking files or typing commands.'
+});
+
+window.onresize = function() {
+    var size = getTermFitSize();
+    term.resize(size.cols, size.rows);
+};
+
+var shownWelcome = false;
+var sidebarOpen = false;
+var btnEl = document.getElementsByClassName('logo-btn')[0];
+var toggleTerm = function() {
+    if (sidebarOpen) {
+        sidebarEl.classList.remove('open');
+        sidebarEl.classList.add('close');
+        btnEl.classList.remove('clicked');
+        sidebarOpen = false;
+    }
+    else {
+        // Run the terminal lazily util it is visible by user.
+        // The reason is that resizing window may truncate welcome message.
+        if (!shownWelcome) {
+            shell.init();
+            shell.run('ls');
+            shownWelcome = true;
+        }
+
+        btnEl.classList.add('clicked');
+        sidebarEl.classList.remove('close');
+        sidebarEl.classList.add('open');
+        sidebarOpen = true;
+    }
+};
+btnEl.addEventListener('click', toggleTerm);
+
+function now() {
+    return (new Date).getTime() / 1000;
+}
+
+var logoEl = document.getElementsByClassName('logo')[0];
+var rotateAngle = 0;
+var lastRotateTime = 0;
+var autoRotateTimer = null;
+var autoRotatePeriod = 5000; // 5s
+function rotateLogo(event) {
+    if (event) event.stopPropagation();
+
+    clearTimeout(autoRotateTimer);
+    autoRotateTimer = setTimeout(rotateLogo, autoRotatePeriod);
+
+    var isCloseBtn = btnEl.classList.contains("clicked");
+    if (!isCloseBtn) {
+        rotateAngle += 180;
+        logoEl.style.transform = "rotateY(" + rotateAngle + "deg)";
+    }
+}
+btnEl.addEventListener('mouseenter', rotateLogo);
+btnEl.addEventListener('mouseleave', rotateLogo);
+// Delay the first rotate a little bit in case the page is not fully loaded
+setTimeout(rotateLogo, 1500);
+
+function ContentLoader() {
+    var self = this;
+    self.preUrl = window.location.href;
+
+    window.onpopstate = function(event) {
+        var url = window.location.href;
+        self.load(url, true);
+    };
+};
+
+ContentLoader.prototype.getBaseUrl = function(url) {
+    var baseUrlLen = url.indexOf("#");
+    if (baseUrlLen < 0) baseUrlLen = url.length;
+    var baseUrl = url.substr(0, baseUrlLen);
+    return baseUrl;
+}
+
+ContentLoader.prototype.dontLoad = function(url) {
+    window._preUrl = this.preUrl;
+    window._url = url;
+    return this.getBaseUrl(this.preUrl) == this.getBaseUrl(url);
+}
+
+ContentLoader.prototype.load = function(url, backHistory) {
+    if (this.dontLoad(url)) return;
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.responseType = "document";
+
+    var self = this;
+    xhr.onload = function () {
+        // get the new content
+        var resDoc = xhr.responseXML;
+        var newPost = resDoc.getElementsByClassName('post')[0];
+
+        // replace the old content with the new one
+        var oldPost = document.getElementsByClassName('post')[0];
+        var container = oldPost.parentNode;
+        container.removeChild(oldPost);
+        container.appendChild(newPost);
+
+        // update title
+        document.title = resDoc.title;
+
+        window.scrollTo(0, 0);
+
+        // manipulate the browser history
+        if (!backHistory)
+            window.history.pushState(null, "", url);
+
+        self.preUrl = url;
+    };
+
+    xhr.send();
+};
+
+var contentLoader = new ContentLoader();
+shell.on('loadurl', function(url) {
+        // load the url specified by the <a> tag
+        contentLoader.load(url);
+        // hide terminal
+        toggleTerm();
+});
+
+})();
+
+</script>
+<!-- KaTex -->
+<script src="/public/js/katex.min.js"></script>
+<script type="text/javascript">
+    var allScripts = document.getElementsByTagName('script');
+    var noUpdateCopy = [];
+    for (var si in allScripts) {
+        noUpdateCopy.push(allScripts[si]);
+    }
+
+    for (var si in noUpdateCopy) {
+        var s = noUpdateCopy[si];
+        if (!s.type || s.type.indexOf("math/tex") < 0) continue;
+
+        var tex = s.innerText;
+        var inline = s.type.indexOf("mode=display") < 0;
+        var renderedHtml;
+        if (inline) {
+            renderedHtml = '<span class="inline-equation">'
+                        + katex.renderToString(tex)
+                        + '</span>';
+        }
+        else {
+            renderedHtml = '<div class="equation">'
+                        + katex.renderToString('\\displaystyle ' + tex)
+                        + '</div>';
+        }
+        s.outerHTML = renderedHtml;
+    }
+</script>
+<!-- Baidu statistics -->  
+<script type="text/javascript">
+var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?c3c6d70d9d8f96f1424c52ce7c552634";
+    var s = document.getElementsByTagName("script")[0]; 
+    s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+  </body>
+</html>

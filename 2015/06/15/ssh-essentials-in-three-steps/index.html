@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
+
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+<!-- Enable responsiveness on mobile devices-->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+<title>
+
+  SSH Essentials in Three Steps &middot; Tate Tian
+
+</title>
+
+<!-- CSS -->
+<link rel="stylesheet" href="/public/css/site.css">
+
+<!-- Icons -->
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/public/apple-touch-icon-144-precomposed.png">
+<link rel="shortcut icon" href="/public/favicon.ico">
+
+<!-- RSS -->
+<link rel="alternate" type="application/rss+xml" title="RSS" href="/atom.xml">
+<link rel="stylesheet" href="/public/css/katex.min.css">
+
+
+  <body>
+
+    <div class="sidebar close">
+  <div class="container content">
+  </div>
+</div>
+<div class="logo-btn">
+    <div class="logo">
+        <div class="bar1"></div>
+        <div class="bar2"></div>
+    </div>
+</div>
+
+
+    <div class="content container">
+      <div class="post">
+    <h1 class="post-title">SSH Essentials in Three Steps</h1>
+    <span class="post-date">15 Jun 2015</span>
+    <p>I have been using Linux for almost ten years. And SSH has been an indespensible
+tool from the early days of my journey in exploring Linux. Throughout the
+years, I learned bits and pieces about SSH, from basic usage to advanced
+tricks. After recently reading a book named <a href="http://www.amazon.com/SSH-Mastery-OpenSSH-PuTTY-Tunnels/dp/1470069717/">SSH Mastery: OpenSSH, PuTTY,
+Tunnels and
+Keys</a>,
+I am now confident that my knowledge about SSH covers most of its features.</p>
+
+<p>While mastering all <a href="https://vimeo.com/54505525">the dark magic of SSH</a> demands
+quite an effort, learning the essentials—the most useful tips and tricks— does
+not. In this post, I want to share with you the essentials of SSH.</p>
+
+<p>(This post focuses on the open-source implementation of SSH, OpenSSH. Sorry, Windows folks!)</p>
+
+<h2 id="big-picture-the-three-steps">Big Picture: The Three Steps</h2>
+<p>Secure Shell, or SSH, is a network tool whose primary goal is to allow an user
+to login a machine <em>remotely</em> and <em>securely</em>.</p>
+
+<p>To this aim, SSH works in the following three steps:</p>
+
+<ul>
+  <li><strong>Server validation</strong>: SSH client checks if the SSH server being connected to is really what it claims (by looking up the entries in <code class="highlighter-rouge">~/.ssh/known_hosts</code>);</li>
+  <li><strong>User authentication</strong>: SSH client tries to login the SSH server by providing user’s credential (e.g. public key in <code class="highlighter-rouge">~/.ssh/id_rsa.pub</code>);</li>
+  <li><strong>Secure data transfer</strong>: Data transfer occurs in the secure channel established between the SSH client and server. On the secure channel, various network protocols (e.g. ftp, X protocol, socket) can be supported.</li>
+</ul>
+
+<h3 id="server-validation">Server Validation</h3>
+<p>To prevent a user from logining into a wrong machine accidentally, SSH client
+maintains the records of machine key signatures in <code class="highlighter-rouge">~/.ssh/known_hosts</code>. When a
+SSH client connects to a machine for the first time, a new record (the IP and
+key signature of the machine), will be appended to the <code class="highlighter-rouge">known_hosts</code> file.
+Later when the SSH client connects to the machine again, the key signature
+provided by the machine this time will be compared with the recorded signature.
+If they don’t match, the connection attempt will be terminated by SSH client.</p>
+
+<p>In some situations, e.g. reinstallation of operating system or IP being
+occupied by another machine, the records in <code class="highlighter-rouge">~/.ssh/known_hosts</code> can become
+invalid. The invalid records must be deleted from <code class="highlighter-rouge">known_hosts</code> file so that
+the SSH client will not forbid users’ connection attempt.</p>
+
+<h3 id="user-authentication">User Authentication</h3>
+<p>Password is the most common way of user authentication. While using password is
+very intuitive, it may not be sufficient in some situations when, for example,
+password is not secure enough (if brute-force attack is a concern), or when
+entering password is tedious or even impossible (running automated scripts on a
+cluster of machines).</p>
+
+<p>Public key authentication can provide higher security and more convenience. In
+a SSH server, the public keys that can be used to login are recorded in
+<code class="highlighter-rouge">~/.ssh/authorized_keys</code>. With a private key that matches one of the public
+key, a SSH client can be granted access to the server.</p>
+
+<p>Public key is the default authentication method of Linux instances in cloud
+(<a href="aws.amazon.com">Amazon AWS</a> or <a href="https://www.openstack.org/">OpenStack</a>). In a
+Web console of cloud platform, a cloud instance can be configured to using a
+public key specified by user, which will be inserted into
+<code class="highlighter-rouge">~/.ssh/authorized_keys</code> file on boot. After launched, the instance can grant
+access to any SSH client that uses the corresponding private key. In OpenSSH
+client, this can be done by using the <code class="highlighter-rouge">-i</code> parameter, for example,  <code class="highlighter-rouge">ssh -i
+identity.pem ubuntu@cloud-node</code>.</p>
+
+<p>If the <code class="highlighter-rouge">-i</code> parameter is not given to specify the file that contains the
+identity (private key), then OpenSSH client will try to read the identity from
+the default file <code class="highlighter-rouge">~/.ssh/id_XXX</code>, whose public key counterpart is
+<code class="highlighter-rouge">~/.ssh/id_XXX.pub</code> (where <code class="highlighter-rouge">XXX</code> can be either <code class="highlighter-rouge">dsa</code>, <code class="highlighter-rouge">ecdsa</code> or <code class="highlighter-rouge">rsa</code>,
+representing the type of key). Keys can be generated by <code class="highlighter-rouge">ssh-keygen</code> utility.
+As it may become clear by now, appending the public key in your
+<code class="highlighter-rouge">~/.ssh/id_XXX.pub</code> to <code class="highlighter-rouge">~/.ssh/authorized_keys</code> on another machine can grant
+you access to the machine without entering password.</p>
+
+<h3 id="secure-data-transfer">Secure Data Transfer</h3>
+<p>Despite its initial goal of allowing a user to login a shell remotely and
+securely (as its name suggests), SSH can serve multiple purposes. With
+flexiblity and extensiblity in mind, SSH has been designed as a three-layer
+architecture, which includes the transport layer, the user authentication layer
+and the connection layer. A single SSH connection can host multiple channels of
+different types, each of which may serve different purpose. The net effect is
+that SSH is very versatile in usage, for example:</p>
+
+<ul>
+  <li><strong>Secure copy (<code class="highlighter-rouge">scp</code>)</strong>, which emulates the interface of cp command, is convenient to transfer files between machines;</li>
+  <li><strong>SSH File Transfer Protocol (<code class="highlighter-rouge">sftp</code>)</strong>, which emulates the behaviour of FTP protocol, offers file transfer as well as directionary manipulation;</li>
+  <li><strong>X forwarding (<code class="highlighter-rouge">-X</code> parameter)</strong>, allows a remote shell to run applications with GUI backed by X server;</li>
+  <li><strong>Port forwarding</strong>, tunnels arbitrary TCP traffics.</li>
+</ul>
+
+<h2 id="port-forwarding">Port Forwarding</h2>
+<p>Port forwarding is a very powerful yet somewhat confusing feature that deserves
+further elaboration.</p>
+
+<p>The three types of port forwarding—Local forwarding, remote forwarding and
+dynamic forwarding— are similar but different.</p>
+
+<h3 id="local-forwarding">Local Forwarding</h3>
+<p><img src="/public/img/ssh-essentials/local_forwarding.png" alt="Local forwarding" /></p>
+
+<p>Local forwarding enables local-side machines  to connect to a remote-side
+machine through a SSH tunnel. This can be useful, for example, when you want to
+access  a database that only allows connection from localhost.</p>
+
+<p>The option for local forwarding in OpenSSH client is <code class="highlighter-rouge">-L
+[local_address:]local_port:target_host:target_port</code>. Set <code class="highlighter-rouge">local_address</code> to <code class="highlighter-rouge">*</code>
+if you want to the socket listening to port <code class="highlighter-rouge">local_port</code> on all interfaces of
+the local-side machine running SSH client.</p>
+
+<h3 id="remote-forwarding">Remote Forwarding</h3>
+<p><img src="/public/img/ssh-essentials/remote_forwarding.png" alt="Remote Forwarding" /></p>
+
+<p>Conversely, remote forwarding gives remote-side machines the ability to connect
+to a client-side machine through a SSH tunnel. This is particularly useful when
+you want to temporaly publish a service on a machine that is behind a NAT
+router or firewall.</p>
+
+<p>The option for remote forwarding in OpenSSH client is <code class="highlighter-rouge">-R
+[remote_address:]remote_port:target_host:target_port</code>. Set <code class="highlighter-rouge">remote_address</code> to
+<code class="highlighter-rouge">*</code> if you want to the socket listening to port <code class="highlighter-rouge">remote_port</code> on all interfaces
+of the remote-side machine running SSH server.</p>
+
+<h3 id="dynamic-forwarding">Dynamic Forwarding</h3>
+<p><img src="/public/img/ssh-essentials/dynamic_forwarding.png" alt="Dynamic Forwarding" /></p>
+
+<p>While local/remote forwarding redirect all the traffic to one target—a
+specific port of a specific machine, dynamic forwarding gets rid of the
+restriction by providing a SOCK proxy interface.  This SSH-as-a-proxy feature
+is one of my favourite as it allows me (who lives in China) to penetrate the
+Great Firewall of China by redirecting the traffic of my browser to a SOCK
+proxy backed by a ssh connection to an Amazon AWS instance (Thanks Amazon for 
+your first-year free trial policy!).</p>
+
+<p>The option for dynamic forwarding in OpenSSH client is <code class="highlighter-rouge">-D
+[local_address:]local_port.</code> The parameter <code class="highlighter-rouge">local_address</code> can be set to <code class="highlighter-rouge">*</code>
+with same meaning as in local forwarding and remote forwarding.</p>
+
+<h2 id="closing-remarks">Closing remarks</h2>
+<p>This post is by no means comprehensive. Yet, I hope it gives an interesting
+introduction to the essentials of SSH, and clears up confusion about the port
+forwarding of SSH. One important topic that is missing in this post is <a href="http://linux.die.net/man/5/ssh_config">SSH
+config</a>, which can really <a href="http://nerderati.com/2011/03/17/simplify-your-life-with-an-ssh-config-file/">simplify your
+life</a>.</p>
+
+</div>
+
+    </div>
+    
+    <!-- Terminal -->
+<script src="/public/js/tateterm.min.js"></script>
+<script type="text/javascript">
+(function() {
+var sidebarEl = document.getElementsByClassName('sidebar')[0];
+var containerEl = sidebarEl.getElementsByClassName('container')[0];
+
+function getTermFitSize() {
+    var viewportWidth = Math.max(document.documentElement.clientWidth,
+                                 window.innerWidth || 0);
+    // use 16px font when the width of viewport is smaller than 830px
+    var charWidth = 11.4545;
+    var lineHeight = 27;
+    if (viewportWidth < 830) {
+        charWidth *= (16.0/18);
+        lineHeight *= (16.0/18);
+    }
+
+    var W = containerEl.clientWidth;
+    var H = containerEl.clientHeight;
+    var rows = Math.floor(H / lineHeight);
+    var cols = Math.floor(W / charWidth);
+    return {rows: rows, cols: cols};
+}
+
+var initTermSize = getTermFitSize();
+var term = new tateterm.Terminal(containerEl, {
+    cols: initTermSize.cols,
+    rows: initTermSize.rows,
+    useStyle: true,
+});
+// set red color to the exactly the same red as we use
+term._term.colors[1] = '#e62e25';
+var shell = new tateterm.Shell(term, {
+    promptTemplate: '%s$ ',
+    welcomeMsg: 'This is the tech blog of Tate Tian.\r\n' +
+            'To explore this website, use this terminal by clicking files or typing commands.'
+});
+
+window.onresize = function() {
+    var size = getTermFitSize();
+    term.resize(size.cols, size.rows);
+};
+
+var shownWelcome = false;
+var sidebarOpen = false;
+var btnEl = document.getElementsByClassName('logo-btn')[0];
+var toggleTerm = function() {
+    if (sidebarOpen) {
+        sidebarEl.classList.remove('open');
+        sidebarEl.classList.add('close');
+        btnEl.classList.remove('clicked');
+        sidebarOpen = false;
+    }
+    else {
+        // Run the terminal lazily util it is visible by user.
+        // The reason is that resizing window may truncate welcome message.
+        if (!shownWelcome) {
+            shell.init();
+            shell.run('ls');
+            shownWelcome = true;
+        }
+
+        btnEl.classList.add('clicked');
+        sidebarEl.classList.remove('close');
+        sidebarEl.classList.add('open');
+        sidebarOpen = true;
+    }
+};
+btnEl.addEventListener('click', toggleTerm);
+
+function now() {
+    return (new Date).getTime() / 1000;
+}
+
+var logoEl = document.getElementsByClassName('logo')[0];
+var rotateAngle = 0;
+var lastRotateTime = 0;
+var autoRotateTimer = null;
+var autoRotatePeriod = 5000; // 5s
+function rotateLogo(event) {
+    if (event) event.stopPropagation();
+
+    clearTimeout(autoRotateTimer);
+    autoRotateTimer = setTimeout(rotateLogo, autoRotatePeriod);
+
+    var isCloseBtn = btnEl.classList.contains("clicked");
+    if (!isCloseBtn) {
+        rotateAngle += 180;
+        logoEl.style.transform = "rotateY(" + rotateAngle + "deg)";
+    }
+}
+btnEl.addEventListener('mouseenter', rotateLogo);
+btnEl.addEventListener('mouseleave', rotateLogo);
+// Delay the first rotate a little bit in case the page is not fully loaded
+setTimeout(rotateLogo, 1500);
+
+function ContentLoader() {
+    var self = this;
+    self.preUrl = window.location.href;
+
+    window.onpopstate = function(event) {
+        var url = window.location.href;
+        self.load(url, true);
+    };
+};
+
+ContentLoader.prototype.getBaseUrl = function(url) {
+    var baseUrlLen = url.indexOf("#");
+    if (baseUrlLen < 0) baseUrlLen = url.length;
+    var baseUrl = url.substr(0, baseUrlLen);
+    return baseUrl;
+}
+
+ContentLoader.prototype.dontLoad = function(url) {
+    window._preUrl = this.preUrl;
+    window._url = url;
+    return this.getBaseUrl(this.preUrl) == this.getBaseUrl(url);
+}
+
+ContentLoader.prototype.load = function(url, backHistory) {
+    if (this.dontLoad(url)) return;
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.responseType = "document";
+
+    var self = this;
+    xhr.onload = function () {
+        // get the new content
+        var resDoc = xhr.responseXML;
+        var newPost = resDoc.getElementsByClassName('post')[0];
+
+        // replace the old content with the new one
+        var oldPost = document.getElementsByClassName('post')[0];
+        var container = oldPost.parentNode;
+        container.removeChild(oldPost);
+        container.appendChild(newPost);
+
+        // update title
+        document.title = resDoc.title;
+
+        window.scrollTo(0, 0);
+
+        // manipulate the browser history
+        if (!backHistory)
+            window.history.pushState(null, "", url);
+
+        self.preUrl = url;
+    };
+
+    xhr.send();
+};
+
+var contentLoader = new ContentLoader();
+shell.on('loadurl', function(url) {
+        // load the url specified by the <a> tag
+        contentLoader.load(url);
+        // hide terminal
+        toggleTerm();
+});
+
+})();
+
+</script>
+<!-- KaTex -->
+<script src="/public/js/katex.min.js"></script>
+<script type="text/javascript">
+    var allScripts = document.getElementsByTagName('script');
+    var noUpdateCopy = [];
+    for (var si in allScripts) {
+        noUpdateCopy.push(allScripts[si]);
+    }
+
+    for (var si in noUpdateCopy) {
+        var s = noUpdateCopy[si];
+        if (!s.type || s.type.indexOf("math/tex") < 0) continue;
+
+        var tex = s.innerText;
+        var inline = s.type.indexOf("mode=display") < 0;
+        var renderedHtml;
+        if (inline) {
+            renderedHtml = '<span class="inline-equation">'
+                        + katex.renderToString(tex)
+                        + '</span>';
+        }
+        else {
+            renderedHtml = '<div class="equation">'
+                        + katex.renderToString('\\displaystyle ' + tex)
+                        + '</div>';
+        }
+        s.outerHTML = renderedHtml;
+    }
+</script>
+<!-- Baidu statistics -->  
+<script type="text/javascript">
+var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?c3c6d70d9d8f96f1424c52ce7c552634";
+    var s = document.getElementsByTagName("script")[0]; 
+    s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+  </body>
+</html>

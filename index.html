@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
+
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+<!-- Enable responsiveness on mobile devices-->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+<title>
+
+  Tate Tian &middot; Programming, Technology and Startup
+
+</title>
+
+<!-- CSS -->
+<link rel="stylesheet" href="/public/css/site.css">
+
+<!-- Icons -->
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/public/apple-touch-icon-144-precomposed.png">
+<link rel="shortcut icon" href="/public/favicon.ico">
+
+<!-- RSS -->
+<link rel="alternate" type="application/rss+xml" title="RSS" href="/atom.xml">
+<link rel="stylesheet" href="/public/css/katex.min.css">
+
+
+  <body>
+
+    <div class="sidebar close">
+  <div class="container content">
+  </div>
+</div>
+<div class="logo-btn">
+    <div class="logo">
+        <div class="bar1"></div>
+        <div class="bar2"></div>
+    </div>
+</div>
+
+
+    <div class="content container">
+      
+<div class="post">
+    <h1 class="post-title"><a href="/2016/01/25/file-io-inside-intel-sgx-enclave/">File I/O Inside Intel SGX Enclave</a></h1>
+    <span class="post-date">25 Jan 2016</span>
+    <p>Intel Software Guard Extensions (SGX) is a set of new x86 instructions that 
+enable a new kind of programming primitive called enclave to be created, 
+launched, attested, sealed and destroyed. Enclave is a protected area of the 
+address space of a process, in which the code and data cannot be snooped or 
+tampered by any software or hardware measures that are originated from outside 
+the enclave. Enclave can be very useful for building secure cloud apps that 
+are protected from potentially malicious cloud providers. 
+See <a href="https://software.intel.com/sites/default/files/managed/d5/e7/Intel-SGX-SDK-Users-Guide-for-Windows-OS.pdf">white papers</a>
+and <a href="https://software.intel.com/sites/default/files/332680-001.pdf">technical slides</a> 
+for more information about Intel SGX.</p>
+
+<p>While all the code and data inside enclave are protected, not all code can be
+executed inside an enclave, for example, all privilleged instructions are 
+invalid in enclave. This means all system calls and I/O operations are 
+not available in enclave. Thus, it would not be surprising that the 
+standard C library shipped with SGX SDK is intetionally left incomplete, 
+missing lots of common and useful procedures, e.g. <code class="highlighter-rouge">open</code>, <code class="highlighter-rouge">read</code>, <code class="highlighter-rouge">write</code>, 
+<code class="highlighter-rouge">close</code>, <code class="highlighter-rouge">exit</code>, etc. This makes porting existing applications into enclave 
+a painful job.</p>
+
+<p>Here is a full list of invalid instructions inside enclave:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Types</th>
+      <th>Instructions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>VMEXIT generating instructions are not allowed because a VMM cannot update the enclave. Generates a #UD.</td>
+      <td><code class="highlighter-rouge">CPUID</code>, <code class="highlighter-rouge">GETSEC</code>, <code class="highlighter-rouge">RDPMC</code>, <code class="highlighter-rouge">RDTSC</code>, <code class="highlighter-rouge">RDTSCP</code>, <code class="highlighter-rouge">SGDT</code>, <code class="highlighter-rouge">SIDT</code>, <code class="highlighter-rouge">SLDT</code>, <code class="highlighter-rouge">STR</code>, <code class="highlighter-rouge">VMCALL</code>, <code class="highlighter-rouge">VMFUNC</code></td>
+    </tr>
+    <tr>
+      <td>I/O instructions (also VMEXIT). Generates #UD.</td>
+      <td><code class="highlighter-rouge">IN</code>, <code class="highlighter-rouge">INS/INSB/INSW/INSD</code>, <code class="highlighter-rouge">OUT</code>, <code class="highlighter-rouge">OUTS/OUTSB/OUTSW/OUTSD</code></td>
+    </tr>
+    <tr>
+      <td>Instructions which access segment registers will also generate #UD.</td>
+      <td>Far <code class="highlighter-rouge">CALL</code>, Far <code class="highlighter-rouge">JMP</code>, Far <code class="highlighter-rouge">RET</code>, <code class="highlighter-rouge">INT n</code>/<code class="highlighter-rouge">INTO</code>, <code class="highlighter-rouge">IRET</code>, <code class="highlighter-rouge">LDS/LES/LFS/LGS/LSS</code>, <code class="highlighter-rouge">MOV</code> to <code class="highlighter-rouge">DS/ES/SS/FS/GS</code>, <code class="highlighter-rouge">POP DS/ES/SS/FS/GS</code>, <code class="highlighter-rouge">SYSCALL</code>, <code class="highlighter-rouge">SYSENTER</code></td>
+    </tr>
+    <tr>
+      <td>Instructions that try to reenter the enclave. Gen- erates #GP.</td>
+      <td><code class="highlighter-rouge">ENCLU[EENTER]</code>, <code class="highlighter-rouge">ENCLU [ERESUME]</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<p>In this post, I will talk about how to work around this limitation of enclave 
+programming <em>gracefully</em>. In particular, I choose file I/O inside enclave as an 
+illustrating example.</p>
+
+<h2 id="ocalls">OCalls</h2>
+
+<p>There are two important types of function calls that are relevant to SGX— 
+<em>ECalls</em> and <em>OCalls</em>. An ECall is a (trusted) function call that enters an 
+enclave; while an OCall is a(n) (untrusted) function calls that leaves an 
+enclave. In order to perform privileged or I/O operations in an enclave, what 
+we are gonna do is essentially making OCalls. Initiated from within enclave 
+yet executed outside enclave, OCalls can be implemented using any CPU 
+instructions, and are available for enclaves. Thus, OCalls provide access 
+points that enable us to use operating system capabilities outside the 
+enclave such as system calls, I/O operations, and so on.</p>
+
+<p>OCalls (as well as ECalls) are defined in a special syntax called <strong>Enclave 
+Definition Language (EDL)</strong>. The code below shows what an EDL file looks like:</p>
+
+<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="n">enclave</span> <span class="p">{</span>
+     <span class="cm">/* ECall functions, trusted functions that will be executed inside enclave */</span>
+     <span class="n">trusted</span> <span class="p">{</span>
+          <span class="kt">int</span> <span class="n">sample_ecall</span><span class="p">(</span><span class="kt">int</span> <span class="n">len</span><span class="p">,</span> <span class="p">[</span><span class="n">out</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">len</span><span class="p">]</span> <span class="kt">void</span><span class="o">*</span> <span class="n">buf</span><span class="p">);</span>
+     <span class="p">};</span>
+     <span class="cm">/* OCall functions, untrusted functions that will be executed outside enclave */</span>
+     <span class="n">untrusted</span> <span class="p">{</span>
+          <span class="kt">int</span> <span class="n">sample_ocall</span><span class="p">(</span><span class="kt">int</span> <span class="n">len</span><span class="p">,</span> <span class="p">[</span><span class="n">in</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">len</span><span class="p">]</span> <span class="kt">char</span><span class="o">*</span> <span class="n">str</span><span class="p">);</span>
+     <span class="p">};</span>
+<span class="p">};</span></code></pre></figure>
+
+<p>Note that evoking an OCall would trigger the CPU to switch between enclave 
+mode and user mode, which comes with certain overhead. Moreover, OCalls can 
+make the calling enclave vunerable to various attacks. Therefore, from either 
+a performance or security perspective, OCall should be used with caution.</p>
+
+<p>Next, I will show how to write user-friendly wrapper functions for OCalls. 
+Take I/O operations as an example.</p>
+
+<h2 id="library-patching-an-example">Library Patching: An example</h2>
+
+<p>Say you are going to port something like below into enclave:</p>
+
+<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cp">#include &lt;stdio.h&gt;
+</span>
+<span class="kt">int</span> <span class="n">log_lvl</span> <span class="o">=</span> <span class="mi">4</span><span class="p">;</span>
+<span class="cp">#define log(level, msg) {                       \
+    if (level &lt; log_lvl) fprintf(stderr, msg);  \
+} </span><span class="cm">/* compiler error! */</span></code></pre></figure>
+
+<p>The problem is that <code class="highlighter-rouge">stdio.h</code> shipped with SGX SDK has neither <code class="highlighter-rouge">stderr</code> nor 
+<code class="highlighter-rouge">fprintf</code>. Apparently, comment out every occurences of log is not ideal. 
+Not only it’s tedious and error-prone, more importantly, it deprives you of 
+the ability of logging, which is critical for debug purpose. In contrast, 
+my proposed solution is quite simple and elegant, keeping your logging code 
+yet requiring only one-line modification (for each file):</p>
+
+<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cp">#include “stdio.h” </span><span class="cm">/* use a patched header file! */</span><span class="cp">
+</span>
+<span class="kt">int</span> <span class="n">log_lvl</span> <span class="o">=</span> <span class="mi">4</span><span class="p">;</span>
+<span class="cp">#define log(level, msg) {                       \
+    if (level &lt; log_lvl) fprintf(stderr, msg);  \
+} </span><span class="cm">/* compiler ok! */</span></code></pre></figure>
+
+<p>The idea is simple: we write a patched version of c library header, which 
+includes the stuff that is missing. I call this technique <em>library patching</em>. 
+The code below is our new <code class="highlighter-rouge">stdio.h</code>:</p>
+
+<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cm">/* stdio.h */</span>
+<span class="cp">#ifndef __STDIO_H
+#define __STDIO_H
+</span>
+<span class="cp">#include &lt;stdio.h&gt;
+</span>
+<span class="cp">#ifndef _INC_FCNTL
+#define _INC_FCNTL
+</span>
+<span class="cp">#define O_RDONLY       0x0000  </span><span class="cm">/* open for reading only */</span><span class="cp">
+#define O_WRONLY       0x0001  </span><span class="cm">/* open for writing only */</span><span class="cp">
+#define O_RDWR         0x0002  </span><span class="cm">/* open for reading and writing */</span><span class="cp">
+#define O_APPEND       0x0008  </span><span class="cm">/* writes done at eof */</span><span class="cp">
+</span>
+<span class="cp">#define O_CREAT        0x0100  </span><span class="cm">/* create and open file */</span><span class="cp">
+#define O_TRUNC        0x0200  </span><span class="cm">/* open and truncate */</span><span class="cp">
+#define O_EXCL         0x0400  </span><span class="cm">/* open only if file doesn't already exist */</span><span class="cp">
+</span>
+<span class="cp">#define O_TEXT         0x4000  </span><span class="cm">/* file mode is text (translated) */</span><span class="cp">
+#define O_BINARY       0x8000  </span><span class="cm">/* file mode is binary (untranslated) */</span><span class="cp">
+#define O_WTEXT        0x10000 </span><span class="cm">/* file mode is UTF16 (translated) */</span><span class="cp">
+#define O_U16TEXT      0x20000 </span><span class="cm">/* file mode is UTF16 no BOM (translated) */</span><span class="cp">
+#define O_U8TEXT       0x40000 </span><span class="cm">/* file mode is UTF8  no BOM (translated) */</span><span class="cp">
+</span>
+<span class="cp">#endif
+</span>
+<span class="cp">#ifdef __cplusplus
+</span><span class="k">extern</span> <span class="s">"C"</span> <span class="p">{</span>
+<span class="cp">#endif
+</span>
+<span class="k">extern</span> <span class="kt">int</span> <span class="n">stdin</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">;</span>
+
+<span class="kt">int</span> <span class="n">open</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">filename</span><span class="p">,</span> <span class="kt">int</span> <span class="n">mode</span><span class="p">);</span>
+<span class="kt">int</span> <span class="n">read</span><span class="p">(</span><span class="kt">int</span> <span class="n">file</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">buf</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">size</span><span class="p">);</span>
+<span class="kt">int</span> <span class="n">write</span><span class="p">(</span><span class="kt">int</span> <span class="n">file</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">buf</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">size</span><span class="p">);</span>
+<span class="kt">void</span> <span class="n">close</span><span class="p">(</span><span class="kt">int</span> <span class="n">file</span><span class="p">);</span>
+
+<span class="kt">void</span> <span class="n">fprintf</span><span class="p">(</span><span class="kt">int</span> <span class="n">file</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">format</span><span class="p">,</span> <span class="p">...);</span>
+
+<span class="cp">#ifdef __cplusplus
+</span><span class="p">}</span>
+<span class="cp">#endif
+</span>
+<span class="cp">#endif</span></code></pre></figure>
+
+<p>OCalls are our secret sauce of implementing the new <code class="highlighter-rouge">stdio</code>:</p>
+
+<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cm">/* stdio.cpp */</span>
+<span class="cp">#include "stdio.h"
+#include &lt;stdarg.h&gt;
+#include &lt;string.h&gt;
+#include “SampleEnclave_t.h"
+</span>
+<span class="kt">int</span> <span class="n">stdin</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">stdout</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="mi">2</span><span class="p">;</span>
+
+<span class="kt">void</span> <span class="nf">fprintf</span><span class="p">(</span><span class="kt">int</span> <span class="n">file</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">fmt</span><span class="p">,</span> <span class="p">...)</span> <span class="p">{</span>
+<span class="cp">#define BUF_SIZE 1024
+</span>    <span class="kt">char</span> <span class="n">buf</span><span class="p">[</span><span class="n">BUFSIZ</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="sc">'\0'</span><span class="p">};</span>
+    <span class="kt">va_list</span> <span class="n">ap</span><span class="p">;</span>
+    <span class="n">va_start</span><span class="p">(</span><span class="n">ap</span><span class="p">,</span> <span class="n">fmt</span><span class="p">);</span>
+    <span class="n">vsnprintf</span><span class="p">(</span><span class="n">buf</span><span class="p">,</span> <span class="n">BUFSIZ</span><span class="p">,</span> <span class="n">fmt</span><span class="p">,</span> <span class="n">ap</span><span class="p">);</span>
+    <span class="n">va_end</span><span class="p">(</span><span class="n">ap</span><span class="p">);</span>
+    <span class="kt">size_t</span> <span class="n">len</span> <span class="o">=</span> <span class="n">strlen</span><span class="p">(</span><span class="n">buf</span><span class="p">);</span>
+    <span class="n">write</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">len</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">open</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">filename</span><span class="p">,</span> <span class="kt">int</span> <span class="n">mode</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">int</span> <span class="n">ret</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">ocall_open</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ret</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span> <span class="o">!=</span> <span class="n">SGX_SUCCESS</span><span class="p">)</span> <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+    <span class="k">return</span> <span class="n">ret</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">read</span><span class="p">(</span><span class="kt">int</span> <span class="n">file</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">buf</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">size</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">int</span> <span class="n">ret</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">ocall_read</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ret</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span> <span class="o">!=</span> <span class="n">SGX_SUCCESS</span><span class="p">)</span> <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+    <span class="k">return</span> <span class="n">ret</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">write</span><span class="p">(</span><span class="kt">int</span> <span class="n">file</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">buf</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">size</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">int</span> <span class="n">ret</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">ocall_write</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ret</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span> <span class="o">!=</span> <span class="n">SGX_SUCCESS</span><span class="p">)</span> <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+    <span class="k">return</span> <span class="n">ret</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">close</span><span class="p">(</span><span class="kt">int</span> <span class="n">file</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">ocall_close</span><span class="p">(</span><span class="n">file</span><span class="p">);</span>
+<span class="p">}</span></code></pre></figure>
+
+<p>Since OCalls are special functions that cause CPU switch between enclave mode 
+and user mode (so do ECalls), they have to be defined in the project’s EDL file:</p>
+
+<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cm">/* SampleEnclave.edl */</span>
+<span class="n">enclave</span> <span class="p">{</span>
+    <span class="n">trusted</span> <span class="p">{</span>
+        <span class="c1">// ...
+</span>    <span class="p">};</span>
+
+    <span class="n">untrusted</span> <span class="p">{</span>
+        <span class="kt">int</span> <span class="n">ocall_open</span><span class="p">([</span><span class="n">in</span><span class="p">,</span> <span class="n">string</span><span class="p">]</span> <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">filename</span><span class="p">,</span> <span class="kt">int</span> <span class="n">mode</span><span class="p">);</span>
+        <span class="kt">int</span> <span class="n">ocall_read</span><span class="p">(</span><span class="kt">int</span> <span class="n">file</span><span class="p">,</span> <span class="p">[</span><span class="n">out</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">]</span> <span class="kt">void</span> <span class="o">*</span><span class="n">buf</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">size</span><span class="p">);</span>
+        <span class="kt">int</span> <span class="n">ocall_write</span><span class="p">(</span><span class="kt">int</span> <span class="n">file</span><span class="p">,</span> <span class="p">[</span><span class="n">in</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">]</span> <span class="kt">void</span> <span class="o">*</span><span class="n">buf</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">size</span><span class="p">);</span>
+        <span class="kt">void</span> <span class="n">ocall_close</span><span class="p">(</span><span class="kt">int</span> <span class="n">file</span><span class="p">);</span>
+    <span class="p">};</span>
+<span class="p">};</span></code></pre></figure>
+
+<p>All the code above are part of the enclave project. In the other project that 
+imports and uses the enclave,  we must give the implementation of the OCalls:</p>
+
+<figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cm">/* ocall.cpp
+ * Assuming the code is compiled under windows
+ */</span>
+<span class="cp">#include "io.h"
+</span>
+<span class="kt">int</span> <span class="nf">ocall_open</span><span class="p">(</span><span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">filename</span><span class="p">,</span> <span class="kt">int</span> <span class="n">mode</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">_open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">mode</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">ocall_read</span><span class="p">(</span><span class="kt">int</span> <span class="n">file</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">buf</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">size</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">_read</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">size</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">ocall_write</span><span class="p">(</span><span class="kt">int</span> <span class="n">file</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">buf</span><span class="p">,</span> <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">size</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">_write</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">size</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">ocall_close</span><span class="p">(</span><span class="kt">int</span> <span class="n">file</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">_close</span><span class="p">(</span><span class="n">file</span><span class="p">);</span>
+<span class="p">}</span></code></pre></figure>
+
+<p>That’s it! Congratulations. Now, following this pattern, you can add any missing 
+functionality to the incomplete C standard library of Intel SGX.</p>
+
+</div>
+
+
+    </div>
+    
+    <!-- Terminal -->
+<script src="/public/js/tateterm.min.js"></script>
+<script type="text/javascript">
+(function() {
+var sidebarEl = document.getElementsByClassName('sidebar')[0];
+var containerEl = sidebarEl.getElementsByClassName('container')[0];
+
+function getTermFitSize() {
+    var viewportWidth = Math.max(document.documentElement.clientWidth,
+                                 window.innerWidth || 0);
+    // use 16px font when the width of viewport is smaller than 830px
+    var charWidth = 11.4545;
+    var lineHeight = 27;
+    if (viewportWidth < 830) {
+        charWidth *= (16.0/18);
+        lineHeight *= (16.0/18);
+    }
+
+    var W = containerEl.clientWidth;
+    var H = containerEl.clientHeight;
+    var rows = Math.floor(H / lineHeight);
+    var cols = Math.floor(W / charWidth);
+    return {rows: rows, cols: cols};
+}
+
+var initTermSize = getTermFitSize();
+var term = new tateterm.Terminal(containerEl, {
+    cols: initTermSize.cols,
+    rows: initTermSize.rows,
+    useStyle: true,
+});
+// set red color to the exactly the same red as we use
+term._term.colors[1] = '#e62e25';
+var shell = new tateterm.Shell(term, {
+    promptTemplate: '%s$ ',
+    welcomeMsg: 'This is the tech blog of Tate Tian.\r\n' +
+            'To explore this website, use this terminal by clicking files or typing commands.'
+});
+
+window.onresize = function() {
+    var size = getTermFitSize();
+    term.resize(size.cols, size.rows);
+};
+
+var shownWelcome = false;
+var sidebarOpen = false;
+var btnEl = document.getElementsByClassName('logo-btn')[0];
+var toggleTerm = function() {
+    if (sidebarOpen) {
+        sidebarEl.classList.remove('open');
+        sidebarEl.classList.add('close');
+        btnEl.classList.remove('clicked');
+        sidebarOpen = false;
+    }
+    else {
+        // Run the terminal lazily util it is visible by user.
+        // The reason is that resizing window may truncate welcome message.
+        if (!shownWelcome) {
+            shell.init();
+            shell.run('ls');
+            shownWelcome = true;
+        }
+
+        btnEl.classList.add('clicked');
+        sidebarEl.classList.remove('close');
+        sidebarEl.classList.add('open');
+        sidebarOpen = true;
+    }
+};
+btnEl.addEventListener('click', toggleTerm);
+
+function now() {
+    return (new Date).getTime() / 1000;
+}
+
+var logoEl = document.getElementsByClassName('logo')[0];
+var rotateAngle = 0;
+var lastRotateTime = 0;
+var autoRotateTimer = null;
+var autoRotatePeriod = 5000; // 5s
+function rotateLogo(event) {
+    if (event) event.stopPropagation();
+
+    clearTimeout(autoRotateTimer);
+    autoRotateTimer = setTimeout(rotateLogo, autoRotatePeriod);
+
+    var isCloseBtn = btnEl.classList.contains("clicked");
+    if (!isCloseBtn) {
+        rotateAngle += 180;
+        logoEl.style.transform = "rotateY(" + rotateAngle + "deg)";
+    }
+}
+btnEl.addEventListener('mouseenter', rotateLogo);
+btnEl.addEventListener('mouseleave', rotateLogo);
+// Delay the first rotate a little bit in case the page is not fully loaded
+setTimeout(rotateLogo, 1500);
+
+function ContentLoader() {
+    var self = this;
+    self.preUrl = window.location.href;
+
+    window.onpopstate = function(event) {
+        var url = window.location.href;
+        self.load(url, true);
+    };
+};
+
+ContentLoader.prototype.getBaseUrl = function(url) {
+    var baseUrlLen = url.indexOf("#");
+    if (baseUrlLen < 0) baseUrlLen = url.length;
+    var baseUrl = url.substr(0, baseUrlLen);
+    return baseUrl;
+}
+
+ContentLoader.prototype.dontLoad = function(url) {
+    window._preUrl = this.preUrl;
+    window._url = url;
+    return this.getBaseUrl(this.preUrl) == this.getBaseUrl(url);
+}
+
+ContentLoader.prototype.load = function(url, backHistory) {
+    if (this.dontLoad(url)) return;
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.responseType = "document";
+
+    var self = this;
+    xhr.onload = function () {
+        // get the new content
+        var resDoc = xhr.responseXML;
+        var newPost = resDoc.getElementsByClassName('post')[0];
+
+        // replace the old content with the new one
+        var oldPost = document.getElementsByClassName('post')[0];
+        var container = oldPost.parentNode;
+        container.removeChild(oldPost);
+        container.appendChild(newPost);
+
+        // update title
+        document.title = resDoc.title;
+
+        window.scrollTo(0, 0);
+
+        // manipulate the browser history
+        if (!backHistory)
+            window.history.pushState(null, "", url);
+
+        self.preUrl = url;
+    };
+
+    xhr.send();
+};
+
+var contentLoader = new ContentLoader();
+shell.on('loadurl', function(url) {
+        // load the url specified by the <a> tag
+        contentLoader.load(url);
+        // hide terminal
+        toggleTerm();
+});
+
+})();
+
+</script>
+<!-- KaTex -->
+<script src="/public/js/katex.min.js"></script>
+<script type="text/javascript">
+    var allScripts = document.getElementsByTagName('script');
+    var noUpdateCopy = [];
+    for (var si in allScripts) {
+        noUpdateCopy.push(allScripts[si]);
+    }
+
+    for (var si in noUpdateCopy) {
+        var s = noUpdateCopy[si];
+        if (!s.type || s.type.indexOf("math/tex") < 0) continue;
+
+        var tex = s.innerText;
+        var inline = s.type.indexOf("mode=display") < 0;
+        var renderedHtml;
+        if (inline) {
+            renderedHtml = '<span class="inline-equation">'
+                        + katex.renderToString(tex)
+                        + '</span>';
+        }
+        else {
+            renderedHtml = '<div class="equation">'
+                        + katex.renderToString('\\displaystyle ' + tex)
+                        + '</div>';
+        }
+        s.outerHTML = renderedHtml;
+    }
+</script>
+<!-- Baidu statistics -->  
+<script type="text/javascript">
+var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?c3c6d70d9d8f96f1424c52ce7c552634";
+    var s = document.getElementsByTagName("script")[0]; 
+    s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+  </body>
+</html>

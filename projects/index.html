@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
+
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+<!-- Enable responsiveness on mobile devices-->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+<title>
+
+  Projects &middot; Tate Tian
+
+</title>
+
+<!-- CSS -->
+<link rel="stylesheet" href="/public/css/site.css">
+
+<!-- Icons -->
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="/public/apple-touch-icon-144-precomposed.png">
+<link rel="shortcut icon" href="/public/favicon.ico">
+
+<!-- RSS -->
+<link rel="alternate" type="application/rss+xml" title="RSS" href="/atom.xml">
+<link rel="stylesheet" href="/public/css/katex.min.css">
+
+
+  <body>
+
+    <div class="sidebar close">
+  <div class="container content">
+  </div>
+</div>
+<div class="logo-btn">
+    <div class="logo">
+        <div class="bar1"></div>
+        <div class="bar2"></div>
+    </div>
+</div>
+
+
+    <div class="content container">
+      <div class="post">
+  <h1 class="post-title">Projects</h1>
+  <p>A selection of projects that I have worked on is listed below.</p>
+
+<h2 id="a-nametrustedssdtrustedssd-a-secure-solid-state-drivea"><a name="trustedssd">TrustedSSD: A Secure Solid-State Drive</a></h2>
+<p class="tags"><span class="tag">research project</span> <span class="tag">data security</span> <span class="tag">trusted hardware</span> <span class="tag">C/C++</span> <span class="tag">firmware</span> <span class="tag">Linux kernel</span></p>
+<p><img src="/public/img/about/OpenSSD.png" alt="TrustedSSD" /></p>
+
+<ul>
+  <li><strong>Motivation.</strong>  No existing data security solutions can provide a high security
+guarantee for a large volume of data without considerable performance penalty.</li>
+  <li><strong>Core Idea.</strong> Incooperating security mechanism into storage devices.</li>
+  <li><strong>Contribution.</strong> I developed <em>TrustedSSD</em>, a secure Solid State Drive (SSD) that
+enforces a fine-grained access control to data in storage. The prototype is 
+build upon a commerically-successful SSD controller (see the photo above). 
+Experiments demonstrate the feasibility of the proposed in-storage security 
+approach.</li>
+</ul>
+
+<h2 id="a-nametrustedlibctrustedlibc-libc-for-hardware-secured-containersa"><a name="trustedlibc">TrustedLibc: Libc for Hardware-Secured Containers</a></h2>
+<p class="tags"><span class="tag">research project</span> <span class="tag">data security</span> <span class="tag">trusted hardware</span> <span class="tag">C/C++</span> <span class="tag">Linux kernel</span></p>
+
+<ul>
+  <li><strong>Motivation.</strong> Recently, a new type of secure runtime container protected by commodity, 
+trusted processors (e.g. <a href="https://software.intel.com/en-us/sgx">Intel SGX</a>) 
+has emerged as a promising technology to address security issues in cloud 
+environment. However, in the secure containers, no privileged CPU instructions
+(e.g. <code class="highlighter-rouge">SYSCALL</code>, <code class="highlighter-rouge">SYSENTER</code>) are permitted inside the secure containers.</li>
+  <li><strong>Core Idea.</strong> Building a libc with syscall support for the secure containers.</li>
+  <li><strong>Contribution.</strong> I developed <em>TrustedLibc</em>, a C standard library with a 
+<em>secure</em> and <em>efficient</em> syscall mechanism, which enables unmodified C programs to 
+run inside a secure container.</li>
+</ul>
+
+<h2 id="a-namehuadingmlhuadingml-a-cloud-platform-for-big-data-analyticsa"><a name="huadingml">HuadingML: A Cloud Platform for Big Data Analytics</a></h2>
+<p class="tags"><span class="tag">lab project</span> <span class="tag">machine learning</span> <span class="tag">cloud computing</span> <span class="tag">Apache Spark</span> <span class="tag">Node.js</span></p>
+<p><img src="/public/img/about/Huading.png" alt="Huading" /></p>
+
+<ul>
+  <li><strong>Motivation.</strong> Today, enterprises from all industries are seeking to 
+convert their big data into big values. Current cloud offerings of big data 
+tools are useful yet not satisfactory: to employees, the tools are not 
+user-friendly to non-specialists; to employers, none of the tools give 
+enough guarantee for data security.</li>
+  <li><strong>Core Idea.</strong> Machine learning by drag-and-drop; data security by trusted agents.</li>
+  <li><strong>Contribution.</strong> In this endeavour funded by our lab, I led a team of 10 
+developers, architected the system, designed the RESTful APIs, drafted the 
+user interface, and tackled most difficult technical issues (e.g. reduce 
+the latency of jobs submitted to Apache Spark).</li>
+</ul>
+
+<h2 id="a-namepaperclubpaperclub-social-network-for-researchersa"><a name="paperclub">PaperClub: Social Network for Researchers</a></h2>
+<p class="tags"><span class="tag">startup project</span> <span class="tag">HTML5</span> <span class="tag">JavaScript</span> <span class="tag">Ruby on Rails</span></p>
+<p><img src="/public/img/about/PaperClub.png" alt="PaperClub" /></p>
+
+<ul>
+  <li><strong>Motivation.</strong> Doing research is lonely. Can we make a difference?</li>
+  <li><strong>Core idea.</strong> Share, read and discuss academic papers in group.</li>
+  <li><strong>Lesson learned.</strong> Out of my own frustration in doing research and inspired
+the advice of <a href="http://paulgraham.com/startupideas.html">“solve your own problems” by Paul Graham</a>,
+I started the startup project and formed a team of four developers and one
+designer.  Our initial development effort went well; we ranked top 3 in a 
+hackathon and won the first price of an entrepreneurship program. 
+Unfortunately, our web app didn’t take off in the end. In retrospect, I think
+the root of our failure is <a href="http://www.forbes.com/sites/xseedcapital/2014/06/25/how-to-survive-a-failed-product-plan-and-come-back-even-stronger">product-market mismatch</a>.
+I strongly recommend any entrepreneur to read the brilliant book 
+<a href="https://www.amazon.com/Running-Lean-Iterate-Works-OReilly/dp/1449305172">Running Lean</a>,
+which could have saved me from making the mistake in the first place.</li>
+</ul>
+
+<!--
+## <a name="touchstarrynight">TouchStarryNight: Interactive Paintings</a>
+<p class="tags"><span class="tag">art project</span> <span class="tag">maker</span> <span class="tag">Arduino</span> <span class="tag">Java</span> <span class="tag">Processing</span></p>
+![TouchStarryNight](/public/img/about/TouchStarryNight.png)
+
+- **Motivation.**
+- **Core Idea.**
+- **Contribution.**
+-->
+
+</div>
+
+    </div>
+    
+    <!-- Terminal -->
+<script src="/public/js/tateterm.min.js"></script>
+<script type="text/javascript">
+(function() {
+var sidebarEl = document.getElementsByClassName('sidebar')[0];
+var containerEl = sidebarEl.getElementsByClassName('container')[0];
+
+function getTermFitSize() {
+    var viewportWidth = Math.max(document.documentElement.clientWidth,
+                                 window.innerWidth || 0);
+    // use 16px font when the width of viewport is smaller than 830px
+    var charWidth = 11.4545;
+    var lineHeight = 27;
+    if (viewportWidth < 830) {
+        charWidth *= (16.0/18);
+        lineHeight *= (16.0/18);
+    }
+
+    var W = containerEl.clientWidth;
+    var H = containerEl.clientHeight;
+    var rows = Math.floor(H / lineHeight);
+    var cols = Math.floor(W / charWidth);
+    return {rows: rows, cols: cols};
+}
+
+var initTermSize = getTermFitSize();
+var term = new tateterm.Terminal(containerEl, {
+    cols: initTermSize.cols,
+    rows: initTermSize.rows,
+    useStyle: true,
+});
+// set red color to the exactly the same red as we use
+term._term.colors[1] = '#e62e25';
+var shell = new tateterm.Shell(term, {
+    promptTemplate: '%s$ ',
+    welcomeMsg: 'This is the tech blog of Tate Tian.\r\n' +
+            'To explore this website, use this terminal by clicking files or typing commands.'
+});
+
+window.onresize = function() {
+    var size = getTermFitSize();
+    term.resize(size.cols, size.rows);
+};
+
+var shownWelcome = false;
+var sidebarOpen = false;
+var btnEl = document.getElementsByClassName('logo-btn')[0];
+var toggleTerm = function() {
+    if (sidebarOpen) {
+        sidebarEl.classList.remove('open');
+        sidebarEl.classList.add('close');
+        btnEl.classList.remove('clicked');
+        sidebarOpen = false;
+    }
+    else {
+        // Run the terminal lazily util it is visible by user.
+        // The reason is that resizing window may truncate welcome message.
+        if (!shownWelcome) {
+            shell.init();
+            shell.run('ls');
+            shownWelcome = true;
+        }
+
+        btnEl.classList.add('clicked');
+        sidebarEl.classList.remove('close');
+        sidebarEl.classList.add('open');
+        sidebarOpen = true;
+    }
+};
+btnEl.addEventListener('click', toggleTerm);
+
+function now() {
+    return (new Date).getTime() / 1000;
+}
+
+var logoEl = document.getElementsByClassName('logo')[0];
+var rotateAngle = 0;
+var lastRotateTime = 0;
+var autoRotateTimer = null;
+var autoRotatePeriod = 5000; // 5s
+function rotateLogo(event) {
+    if (event) event.stopPropagation();
+
+    clearTimeout(autoRotateTimer);
+    autoRotateTimer = setTimeout(rotateLogo, autoRotatePeriod);
+
+    var isCloseBtn = btnEl.classList.contains("clicked");
+    if (!isCloseBtn) {
+        rotateAngle += 180;
+        logoEl.style.transform = "rotateY(" + rotateAngle + "deg)";
+    }
+}
+btnEl.addEventListener('mouseenter', rotateLogo);
+btnEl.addEventListener('mouseleave', rotateLogo);
+// Delay the first rotate a little bit in case the page is not fully loaded
+setTimeout(rotateLogo, 1500);
+
+function ContentLoader() {
+    var self = this;
+    self.preUrl = window.location.href;
+
+    window.onpopstate = function(event) {
+        var url = window.location.href;
+        self.load(url, true);
+    };
+};
+
+ContentLoader.prototype.getBaseUrl = function(url) {
+    var baseUrlLen = url.indexOf("#");
+    if (baseUrlLen < 0) baseUrlLen = url.length;
+    var baseUrl = url.substr(0, baseUrlLen);
+    return baseUrl;
+}
+
+ContentLoader.prototype.dontLoad = function(url) {
+    window._preUrl = this.preUrl;
+    window._url = url;
+    return this.getBaseUrl(this.preUrl) == this.getBaseUrl(url);
+}
+
+ContentLoader.prototype.load = function(url, backHistory) {
+    if (this.dontLoad(url)) return;
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.responseType = "document";
+
+    var self = this;
+    xhr.onload = function () {
+        // get the new content
+        var resDoc = xhr.responseXML;
+        var newPost = resDoc.getElementsByClassName('post')[0];
+
+        // replace the old content with the new one
+        var oldPost = document.getElementsByClassName('post')[0];
+        var container = oldPost.parentNode;
+        container.removeChild(oldPost);
+        container.appendChild(newPost);
+
+        // update title
+        document.title = resDoc.title;
+
+        window.scrollTo(0, 0);
+
+        // manipulate the browser history
+        if (!backHistory)
+            window.history.pushState(null, "", url);
+
+        self.preUrl = url;
+    };
+
+    xhr.send();
+};
+
+var contentLoader = new ContentLoader();
+shell.on('loadurl', function(url) {
+        // load the url specified by the <a> tag
+        contentLoader.load(url);
+        // hide terminal
+        toggleTerm();
+});
+
+})();
+
+</script>
+<!-- KaTex -->
+<script src="/public/js/katex.min.js"></script>
+<script type="text/javascript">
+    var allScripts = document.getElementsByTagName('script');
+    var noUpdateCopy = [];
+    for (var si in allScripts) {
+        noUpdateCopy.push(allScripts[si]);
+    }
+
+    for (var si in noUpdateCopy) {
+        var s = noUpdateCopy[si];
+        if (!s.type || s.type.indexOf("math/tex") < 0) continue;
+
+        var tex = s.innerText;
+        var inline = s.type.indexOf("mode=display") < 0;
+        var renderedHtml;
+        if (inline) {
+            renderedHtml = '<span class="inline-equation">'
+                        + katex.renderToString(tex)
+                        + '</span>';
+        }
+        else {
+            renderedHtml = '<div class="equation">'
+                        + katex.renderToString('\\displaystyle ' + tex)
+                        + '</div>';
+        }
+        s.outerHTML = renderedHtml;
+    }
+</script>
+<!-- Baidu statistics -->  
+<script type="text/javascript">
+var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?c3c6d70d9d8f96f1424c52ce7c552634";
+    var s = document.getElementsByTagName("script")[0]; 
+    s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+  </body>
+</html>
