@@ -26,12 +26,11 @@ AI that solves the game automatically. The result is
 With SolveThis.js, you can solve the puzzle interactively or let the computer 
 automatically find the solution with minimal steps. Try the demo below.
 
-<p data-height="620" data-theme-id="11840" data-slug-hash="GgvYqw" 
-data-default-tab="result" data-user="tatetian" class='codepen'>See the Pen <a 
-href='http://codepen.io/tatetian/pen/GgvYqw/'>SolveThis.js</a> by Tate Tian (<a 
-href='http://codepen.io/tatetian'>@tatetian</a>) on <a 
-href='http://codepen.io'>CodePen</a>.</p> <script async 
-src="//assets.codepen.io/assets/embed/ei.js"></script>
+<p data-height="625" data-theme-id="dark" data-slug-hash="GgvYqw" 
+data-default-tab="result" data-user="tatetian" data-embed-version="2" 
+class="codepen">See the Pen <a 
+href="http://codepen.io/tatetian/pen/GgvYqw/">SolveThis.js</a> by Tate Tian (<a href="http://codepen.io/tatetian">@tatetian</a>) on <a href="http://codepen.io">CodePen</a>.</p>
+<script async src="//assets.codepen.io/assets/embed/ei.js"></script>
 
 ## How it Works
 

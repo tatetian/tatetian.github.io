@@ -36,7 +36,7 @@ In this post, I will talk about how to work around this limitation of enclave
 programming *gracefully*. In particular, I choose file I/O inside enclave as an 
 illustrating example.
 
-# OCalls
+## OCalls
 
 There are two important types of function calls that are relevant to SGX--- 
 *ECalls* and *OCalls*. An ECall is a (trusted) function call that enters an 
@@ -72,7 +72,7 @@ a performance or security perspective, OCall should be used with caution.
 Next, I will show how to write user-friendly wrapper functions for OCalls. 
 Take I/O operations as an example.
 
-# Library Patching: An example
+## Library Patching: An example
 
 Say you are going to port something like below into enclave:
 

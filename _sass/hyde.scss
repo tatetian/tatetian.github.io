@@ -147,11 +147,18 @@ body {
 
 //$main-color:blue;
 $red:#F92772;
-$red2:#AB3000;
+$red2:#E54B4B;
 $red3:#E62E25;
 $blue:#66D9EE;
-$grey:#CBCBCB;
+$grey:#CDDDDD;
+$yellow: #FBBA72;
 $main-color:$red3;
+$secondary-color:$red2;
+$black: #071E22;
+
+body {
+    color: $black;
+}
 
 .sidebar-btn {
     position: fixed;
@@ -170,7 +177,7 @@ $main-color:$red3;
 }
 
 a {
-   color: $main-color; 
+   color: $secondary-color; 
 }
 
 .terminal a {
@@ -182,19 +189,18 @@ h1, h1 a{
     color: $main-color;
 }
 
-h2,h3 a {
+h2 > a, h3 > a {
     color: #313131;
 }
 
-h2,h3 a:hover {
+h2 > a:hover, h3 > a:hover {
     color: #313131;
     text-decoration: none;
 }
 
-
 code {
-    color: $main-color;
     font-family: "InputMono", Menlo, Monaco, "Courier New", monospace;
+    background-color: $grey;
 }
 
 .container > .terminal {
@@ -297,6 +303,19 @@ code {
 
 .post-title {
     margin-top: 0.72rem;
+}
+
+.tags {
+    width: 100%;
+    font-size: 0.8rem;
+}
+
+.tag {
+    background-color: $secondary-color;
+    color: white;
+    border-radius: 0.25rem;
+    padding: 0 0.25rem;
+    white-space: nowrap;
 }
 
 /*
