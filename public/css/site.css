@@ -43,9 +43,12 @@ body {
 
 html {
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-size: 16px;
+  font-size: 13px;
   line-height: 1.5; }
 
+@media (min-width: 500px) {
+  html {
+    font-size: 16px; } }
 @media (min-width: 830px) {
   html {
     font-size: 18px; } }
@@ -247,18 +250,6 @@ tbody tr:nth-child(odd) th {
   background-color: #f9f9f9; }
 
 /*
- * Container
- *
- * Center the page content.
- */
-.container {
-  max-width: 38rem;
-  padding-left: 0rem;
-  padding-right: 0rem;
-  margin-left: 4.6rem;
-  margin-right: auto; }
-
-/*
  * Masthead
  *
  * Super small header above the content for site name and short description.
@@ -408,7 +399,7 @@ a.pagination-item:hover {
  */
 html {
   /* Use the nicest Helvestica. Available on Mac. */
-  font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica \a  Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+  font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
   font-family: "LetteraProLight", monospace;
   font-family: "InputSans", monospace;
   font-weight: normal;
@@ -429,16 +420,17 @@ html {
   overflow: hidden;
   z-index: 100;
   text-align: center;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.8);
   background-color: black;
   height: 100%; }
 
 .sidebar > .container {
-  height: 100%; }
+  height: 100%;
+  overflow: hidden; }
 
 .open {
   visibility: visible;
-  opacity: 0.8;
+  opacity: 0.9;
   -webkit-transition: opacity 0.25s linear;
   -moz-transition: opacity 0.25s linear;
   -ms-transition: opacity 0.25s linear;
@@ -531,23 +523,22 @@ code {
   padding: 0 0;
   margin: 0 0;
   border: none;
-  text-align: left;
-  height: 100%;
-  width: 105%;
-  /* leave some extra space so that content won't overflow
-     due to inacurracy of floating point number calculation */ }
+  text-align: left; }
+
+.sidebar .terminal .xterm-viewport {
+  z-index: 200;
+  position: fixed;
+  right: 0; }
 
 /* Container
  *
  * Align the contents of the site above the proper threshold with some margin-fu
  * with a 25%-wide `.sidebar`.
  */
-.content {
-  margin-top: 0.55rem;
-  padding-top: 0rem;
-  padding-bottom: 0rem;
-  max-width: 38rem;
-  margin-right: 1.4rem; }
+.container {
+  padding: 0 0;
+  margin: 0rem 1.4rem 0 4.6rem;
+  max-width: 38rem; }
 
 .logo-btn {
   position: fixed;

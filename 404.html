@@ -24,6 +24,7 @@
 <!-- RSS -->
 <link rel="alternate" type="application/rss+xml" title="RSS" href="/atom.xml">
 <link rel="stylesheet" href="/public/css/katex.min.css">
+<link rel="stylesheet" href="/public/css/xterm.css">
 
 
   <body>
@@ -75,8 +76,7 @@ function getTermFitSize() {
 
 var initTermSize = getTermFitSize();
 var term = new tateterm.Terminal(containerEl, {
-    cols: initTermSize.cols,
-    rows: initTermSize.rows,
+    cursorBlink: true,
     useStyle: true,
 });
 // set red color to the exactly the same red as we use
@@ -87,11 +87,6 @@ var shell = new tateterm.Shell(term, {
             'To explore this website, use this terminal by clicking files or typing commands.'
 });
 
-window.onresize = function() {
-    var size = getTermFitSize();
-    term.resize(size.cols, size.rows);
-};
-
 var shownWelcome = false;
 var sidebarOpen = false;
 var btnEl = document.getElementsByClassName('logo-btn')[0];
@@ -101,6 +96,7 @@ var toggleTerm = function() {
         sidebarEl.classList.add('close');
         btnEl.classList.remove('clicked');
         sidebarOpen = false;
+        document.body.style.overflow = "scroll";
     }
     else {
         // Run the terminal lazily util it is visible by user.
@@ -111,6 +107,7 @@ var toggleTerm = function() {
             shownWelcome = true;
         }
 
+        document.body.style.overflow = "hidden";
         btnEl.classList.add('clicked');
         sidebarEl.classList.remove('close');
         sidebarEl.classList.add('open');
