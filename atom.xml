@@ -4,7 +4,7 @@
  <title>Tate Tian</title>
  <link href="http://tatetian.me/atom.xml" rel="self"/>
  <link href="http://tatetian.me/"/>
- <updated>2016-08-24T11:37:06+08:00</updated>
+ <updated>2016-08-24T12:48:32+08:00</updated>
  <id>http://tatetian.me</id>
  <author>
    <name>Tate Tian</name>
@@ -440,10 +440,9 @@ AI that solves the game automatically. The result is
 
 &lt;h2 id=&quot;a-demo&quot;&gt;A Demo&lt;/h2&gt;
 &lt;p&gt;With SolveThis.js, you can solve the puzzle interactively or let the computer 
-automatically find the solution with minimal steps. Try the demo below.&lt;/p&gt;
+automatically find the solution with minimal steps. Try the &lt;a href=&quot;https://jsfiddle.net/tatetian/bhsvauyq/1/&quot;&gt;demo&lt;/a&gt; below.&lt;/p&gt;
 
-&lt;p data-height=&quot;625&quot; data-theme-id=&quot;dark&quot; data-slug-hash=&quot;GgvYqw&quot; data-default-tab=&quot;result&quot; data-user=&quot;tatetian&quot; data-embed-version=&quot;2&quot; class=&quot;codepen&quot;&gt;See the Pen &lt;a href=&quot;http://codepen.io/tatetian/pen/GgvYqw/&quot;&gt;SolveThis.js&lt;/a&gt; by Tate Tian (&lt;a href=&quot;http://codepen.io/tatetian&quot;&gt;@tatetian&lt;/a&gt;) on &lt;a href=&quot;http://codepen.io&quot;&gt;CodePen&lt;/a&gt;.&lt;/p&gt;
-&lt;script async=&quot;&quot; src=&quot;//assets.codepen.io/assets/embed/ei.js&quot;&gt;&lt;/script&gt;
+&lt;iframe width=&quot;100%&quot; height=&quot;600&quot; src=&quot;//jsfiddle.net/tatetian/bhsvauyq/1/embedded/result/&quot; allowfullscreen=&quot;allowfullscreen&quot; frameborder=&quot;0&quot;&gt;&lt;/iframe&gt;
 
 &lt;h2 id=&quot;how-it-works&quot;&gt;How it Works&lt;/h2&gt;
 
