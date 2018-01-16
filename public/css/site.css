@@ -587,18 +587,18 @@ code {
   height: 60%; }
 
 .logo-btn.clicked .bar1 {
-  -webkit-transform: translate(0, 0.23em) rotate(45deg) scaleX(1.03571) scaleY(1.21429);
-  -moz-transform: translate(0, 0.23em) rotate(45deg) scaleX(1.03571) scaleY(1.21429);
-  -ms-transform: translate(0, 0.23em) rotate(45deg) scaleX(1.03571) scaleY(1.21429);
-  -o-transform: translate(0, 0.23em) rotate(45deg) scaleX(1.03571) scaleY(1.21429);
-  transform: translate(0, 0.23em) rotate(45deg) scaleX(1.03571) scaleY(1.21429); }
+  -webkit-transform: translate(0, 0.23em) rotate(45deg) scaleX(1.035714) scaleY(1.2142857);
+  -moz-transform: translate(0, 0.23em) rotate(45deg) scaleX(1.035714) scaleY(1.2142857);
+  -ms-transform: translate(0, 0.23em) rotate(45deg) scaleX(1.035714) scaleY(1.2142857);
+  -o-transform: translate(0, 0.23em) rotate(45deg) scaleX(1.035714) scaleY(1.2142857);
+  transform: translate(0, 0.23em) rotate(45deg) scaleX(1.035714) scaleY(1.2142857); }
 
 .logo-btn.clicked .bar2 {
-  -webkit-transform: rotate(45deg) scaleX(0.85) scaleY(0.96667);
-  -moz-transform: rotate(45deg) scaleX(0.85) scaleY(0.96667);
-  -ms-transform: rotate(45deg) scaleX(0.85) scaleY(0.96667);
-  -o-transform: rotate(45deg) scaleX(0.85) scaleY(0.96667);
-  transform: rotate(45deg) scaleX(0.85) scaleY(0.96667); }
+  -webkit-transform: rotate(45deg) scaleX(0.85) scaleY(0.9666666667);
+  -moz-transform: rotate(45deg) scaleX(0.85) scaleY(0.9666666667);
+  -ms-transform: rotate(45deg) scaleX(0.85) scaleY(0.9666666667);
+  -o-transform: rotate(45deg) scaleX(0.85) scaleY(0.9666666667);
+  transform: rotate(45deg) scaleX(0.85) scaleY(0.9666666667); }
 
 .post-title {
   margin-top: 0.72rem; }

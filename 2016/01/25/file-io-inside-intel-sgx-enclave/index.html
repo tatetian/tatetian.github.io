@@ -255,8 +255,8 @@ and user mode (so do ECalls), they have to be defined in the project’s EDL fil
 <figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cm">/* SampleEnclave.edl */</span>
 <span class="n">enclave</span> <span class="p">{</span>
     <span class="n">trusted</span> <span class="p">{</span>
-        <span class="c1">// ...
-</span>    <span class="p">};</span>
+        <span class="c1">// ...</span>
+    <span class="p">};</span>
 
     <span class="n">untrusted</span> <span class="p">{</span>
         <span class="kt">int</span> <span class="n">ocall_open</span><span class="p">([</span><span class="n">in</span><span class="p">,</span> <span class="n">string</span><span class="p">]</span> <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">filename</span><span class="p">,</span> <span class="kt">int</span> <span class="n">mode</span><span class="p">);</span>
