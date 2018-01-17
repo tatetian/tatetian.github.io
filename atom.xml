@@ -4,7 +4,7 @@
  <title>Tate Tian</title>
  <link href="http://localhost:4000/atom.xml" rel="self"/>
  <link href="http://localhost:4000/"/>
- <updated>2018-01-17T01:18:10+08:00</updated>
+ <updated>2018-01-17T11:56:53+08:00</updated>
  <id>http://localhost:4000</id>
  <author>
    <name>Tate Tian</name>
@@ -23,19 +23,19 @@ interesting about applied cryptography.&lt;/p&gt;
 &lt;h2 id=&quot;overview-of-sgx-protected-file-system&quot;&gt;Overview of SGX Protected File System&lt;/h2&gt;
 
 &lt;p&gt;With the release of &lt;a href=&quot;https://github.com/01org/linux-sgx&quot;&gt;Intel SGX SDK&lt;/a&gt; v1.9,
-one important missing functionality of Intel® SGX SDK is finally there:
-&lt;strong&gt;secure file I/O&lt;/strong&gt;. It is provided in a component of Intel SGX SDK, named
+one important missing functionality of Intel SGX SDK is finally there:
+&lt;em&gt;secure file I/O&lt;/em&gt;. It is provided in a component of Intel SGX SDK, named
 &lt;a href=&quot;https://software.intel.com/en-us/node/738203&quot;&gt;Intel Protected File System Library&lt;/a&gt;, 
-which enables developers to perform I/O operations inside enclaves &lt;em&gt;securely&lt;/em&gt;.
+which enables developers to perform I/O operations inside enclaves securely.
 More specifically, it guarantees&lt;/p&gt;
 
 &lt;ul&gt;
-  &lt;li&gt;&lt;strong&gt;Confidentiality of user data&lt;/strong&gt;: All user data is encrypted and then written
+  &lt;li&gt;&lt;em&gt;Confidentiality of user data&lt;/em&gt;: All user data is encrypted and then written
 to disk to prevent any data leakage;&lt;/li&gt;
-  &lt;li&gt;&lt;strong&gt;Integrity of user data&lt;/strong&gt;: All user
+  &lt;li&gt;&lt;em&gt;Integrity of user data&lt;/em&gt;: All user
 data are read from disk and then decrypted with MAC (Message Authentication
 Code) verified to detect any data tampering;&lt;/li&gt;
-  &lt;li&gt;&lt;strong&gt;Matching of file name&lt;/strong&gt;: When opening an existing file, the metadata of the
+  &lt;li&gt;&lt;em&gt;Matching of file name&lt;/em&gt;: When opening an existing file, the metadata of the
 to-be-openned file will be checked to ensure that the name of the file when
 created is the same as the name given to the open operation.&lt;/li&gt;
 &lt;/ul&gt;
@@ -78,15 +78,16 @@ System works behind the scene.&lt;/p&gt;
 &lt;p&gt;In SGX Protected File System, a variant of Merkle Hash Tree is used to protect
 both confidentiality and integrity of data.&lt;/p&gt;
 
-&lt;p&gt;A &lt;strong&gt;Merkle Hash Tree (MHT)&lt;/strong&gt;, as &lt;a href=&quot;https://en.wikipedia.org/wiki/Merkle_tree&quot;&gt;defined in
+&lt;p&gt;A &lt;em&gt;Merkle Hash Tree (MHT)&lt;/em&gt;, as &lt;a href=&quot;https://en.wikipedia.org/wiki/Merkle_tree&quot;&gt;defined in
 Wikipedia&lt;/a&gt;, is “a tree in which
 every leaf node is labelled with the hash of a data block and every non-leaf
 node is labelled with the cryptographic hash of the labels of its child nodes”.
 The core idea of MHT is that by organising the hash values in a tree, the
 integrity of a data block can be checked in a complexity of log(N), where N is
-the number of nodes in the tree.&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/public/img/sgx-protected-file-system/MHT-classic.png&quot; alt=&quot;A classic MHT that consists of 7 MHT nodes that covers 4 data blocks.&quot; title=&quot;A classic MHT that consists of 7 MHT nodes that covers 4 data blocks.&quot; /&gt;&lt;/p&gt;
+the number of nodes in the tree.The figure below shows a classic MHT that 
+consists of 7 MHT nodes that covers 4 data blocks.
+&lt;img src=&quot;/public/img/sgx-protected-file-system/MHT-classic.png&quot; alt=&quot;A classic MHT that consists of 7 MHT nodes that covers 4 data blocks.&quot; title=&quot;A classic 
+MHT that consists of 7 MHT nodes that covers 4 data blocks.&quot; /&gt;&lt;/p&gt;
 
 &lt;p&gt;While the idea of MHT is simple enough, there are other considerations when
 implementing a MHT-like cryptographic construct for SGX Protected File System.
@@ -100,28 +101,28 @@ granularity of data management in file systems.&lt;/p&gt;
 (see the figure below) with the following characteristics:&lt;/p&gt;
 
 &lt;ul&gt;
-  &lt;li&gt;&lt;strong&gt;Authenticated encryption&lt;/strong&gt;. To protect both confidentiality and integrity,
+  &lt;li&gt;&lt;em&gt;Authenticated encryption&lt;/em&gt;. To protect both confidentiality and integrity,
 it is more efficient to use authenticated encryption—a form of encryption which
 simultaneously provides confidentiality, integrity—rather than doing encryption
 and MAC separately. &lt;a href=&quot;https://en.wikipedia.org/wiki/Galois/Counter_Mode&quot;&gt;AES-GCM
 scheme&lt;/a&gt;, widely accepted for
 its high throughput, is used in the implementation of SGX Protected File
 System.&lt;/li&gt;
-  &lt;li&gt;&lt;strong&gt;Block-size nodes&lt;/strong&gt;. The tree consists of nodes whose sizes are all equal to
+  &lt;li&gt;&lt;em&gt;Block-size nodes&lt;/em&gt;. The tree consists of nodes whose sizes are all equal to
 the size of a block on disk (4KB). Every node is encrypted before writing to
 disk and decrypted after reading from disk. There are three different types of
 node:
     &lt;ol&gt;
-      &lt;li&gt;&lt;strong&gt;The metadata node&lt;/strong&gt; maintains the file name as well as the encryption
+      &lt;li&gt;&lt;em&gt;The metadata node&lt;/em&gt; maintains the file name as well as the encryption
 key and MAC of the root MHT node (H&lt;sub&gt;0&lt;/sub&gt;). In addition, to reduce the
 disk space consumption for small files, the metadata node also contains the
 first 3KB of user data.&lt;/li&gt;
-      &lt;li&gt;&lt;strong&gt;A MHT node&lt;/strong&gt; stores the encryption keys and MACs
+      &lt;li&gt;&lt;em&gt;A MHT node&lt;/em&gt; stores the encryption keys and MACs
 of its child nodes.&lt;/li&gt;
-      &lt;li&gt;&lt;strong&gt;A data node&lt;/strong&gt; stores one block of user data.&lt;/li&gt;
+      &lt;li&gt;&lt;em&gt;A data node&lt;/em&gt; stores one block of user data.&lt;/li&gt;
     &lt;/ol&gt;
   &lt;/li&gt;
-  &lt;li&gt;&lt;strong&gt;Easy-to-append layout&lt;/strong&gt;. In a classic MHT, data nodes are only linked to
+  &lt;li&gt;&lt;em&gt;Easy-to-append layout&lt;/em&gt;. In a classic MHT, data nodes are only linked to
 leaf MHT nodes; yet, in this variant of MHT, data nodes are linked to leaf MHT
 nodes as well as non-leaf MHT nodes. This makes changes to the tree trivial
 when appending new data to the end of file. Another benefit is that the on-disk
@@ -262,14 +263,14 @@ important to know when it does NOT work. Here are the major limitations that
 the users should be aware of:&lt;/p&gt;
 
 &lt;ul&gt;
-  &lt;li&gt;&lt;strong&gt;Limited concurrency&lt;/strong&gt;. At any time, only a single writer enclave or
+  &lt;li&gt;&lt;em&gt;Limited concurrency&lt;/em&gt;. At any time, only a single writer enclave or
 multiple reader enclaves can open a SGX-protected file; that is, multiple
 writer enclaves could corrupt a SGX-protected file when accessing the file
 concurrently.&lt;/li&gt;
-  &lt;li&gt;&lt;strong&gt;Rollback attacks&lt;/strong&gt;. The users cannot detect whether he has opened an old
+  &lt;li&gt;&lt;em&gt;Rollback attacks&lt;/em&gt;. The users cannot detect whether he has opened an old
 (but authenticated) version of a file. In other words, SGX Protected File
 System does not guarantee the freshness of user data.&lt;/li&gt;
-  &lt;li&gt;&lt;strong&gt;Side-channel attacks&lt;/strong&gt;. Some seemingly-insignificant information, such as
+  &lt;li&gt;&lt;em&gt;Side-channel attacks&lt;/em&gt;. Some seemingly-insignificant information, such as
 file name, file size, access time, access pattern (e.g., which blocks are
 read/written), etc, are not protected. This information could be used by
 sophisticated attackers to gain sensitive information.&lt;/li&gt;
@@ -283,7 +284,10 @@ sophisticated attackers to gain sensitive information.&lt;/li&gt;
    <link href="http://localhost:4000/2016/01/25/file-io-inside-intel-sgx-enclave/"/>
    <updated>2016-01-25T00:00:00+08:00</updated>
    <id>http://localhost:4000/2016/01/25/file-io-inside-intel-sgx-enclave</id>
-   <content type="html">&lt;p&gt;Intel Software Guard Extensions (SGX) is a set of new x86 instructions that 
+   <content type="html">&lt;p&gt;Update (Jan 15, 2017): Intel SGX SDK now has built-in support for secure file 
+I/O. See my blog post &lt;a href=&quot;/2017/01/15/understanding-sgx-protected-file-system/&quot;&gt;Understanding SGX Protected File System&lt;/a&gt; for more.&lt;/p&gt;
+
+&lt;p&gt;Intel Software Guard Extensions (SGX) is a set of new x86 instructions that 
 enable a new kind of programming primitive called enclave to be created, 
 launched, attested, sealed and destroyed. Enclave is a protected area of the 
 address space of a process, in which the code and data cannot be snooped or 

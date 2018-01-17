@@ -52,19 +52,19 @@ interesting about applied cryptography.</p>
 <h2 id="overview-of-sgx-protected-file-system">Overview of SGX Protected File System</h2>
 
 <p>With the release of <a href="https://github.com/01org/linux-sgx">Intel SGX SDK</a> v1.9,
-one important missing functionality of Intel® SGX SDK is finally there:
-<strong>secure file I/O</strong>. It is provided in a component of Intel SGX SDK, named
+one important missing functionality of Intel SGX SDK is finally there:
+<em>secure file I/O</em>. It is provided in a component of Intel SGX SDK, named
 <a href="https://software.intel.com/en-us/node/738203">Intel Protected File System Library</a>, 
-which enables developers to perform I/O operations inside enclaves <em>securely</em>.
+which enables developers to perform I/O operations inside enclaves securely.
 More specifically, it guarantees</p>
 
 <ul>
-  <li><strong>Confidentiality of user data</strong>: All user data is encrypted and then written
+  <li><em>Confidentiality of user data</em>: All user data is encrypted and then written
 to disk to prevent any data leakage;</li>
-  <li><strong>Integrity of user data</strong>: All user
+  <li><em>Integrity of user data</em>: All user
 data are read from disk and then decrypted with MAC (Message Authentication
 Code) verified to detect any data tampering;</li>
-  <li><strong>Matching of file name</strong>: When opening an existing file, the metadata of the
+  <li><em>Matching of file name</em>: When opening an existing file, the metadata of the
 to-be-openned file will be checked to ensure that the name of the file when
 created is the same as the name given to the open operation.</li>
 </ul>
@@ -107,15 +107,16 @@ System works behind the scene.</p>
 <p>In SGX Protected File System, a variant of Merkle Hash Tree is used to protect
 both confidentiality and integrity of data.</p>
 
-<p>A <strong>Merkle Hash Tree (MHT)</strong>, as <a href="https://en.wikipedia.org/wiki/Merkle_tree">defined in
+<p>A <em>Merkle Hash Tree (MHT)</em>, as <a href="https://en.wikipedia.org/wiki/Merkle_tree">defined in
 Wikipedia</a>, is “a tree in which
 every leaf node is labelled with the hash of a data block and every non-leaf
 node is labelled with the cryptographic hash of the labels of its child nodes”.
 The core idea of MHT is that by organising the hash values in a tree, the
 integrity of a data block can be checked in a complexity of log(N), where N is
-the number of nodes in the tree.</p>
-
-<p><img src="/public/img/sgx-protected-file-system/MHT-classic.png" alt="A classic MHT that consists of 7 MHT nodes that covers 4 data blocks." title="A classic MHT that consists of 7 MHT nodes that covers 4 data blocks." /></p>
+the number of nodes in the tree.The figure below shows a classic MHT that 
+consists of 7 MHT nodes that covers 4 data blocks.
+<img src="/public/img/sgx-protected-file-system/MHT-classic.png" alt="A classic MHT that consists of 7 MHT nodes that covers 4 data blocks." title="A classic 
+MHT that consists of 7 MHT nodes that covers 4 data blocks." /></p>
 
 <p>While the idea of MHT is simple enough, there are other considerations when
 implementing a MHT-like cryptographic construct for SGX Protected File System.
@@ -129,28 +130,28 @@ granularity of data management in file systems.</p>
 (see the figure below) with the following characteristics:</p>
 
 <ul>
-  <li><strong>Authenticated encryption</strong>. To protect both confidentiality and integrity,
+  <li><em>Authenticated encryption</em>. To protect both confidentiality and integrity,
 it is more efficient to use authenticated encryption—a form of encryption which
 simultaneously provides confidentiality, integrity—rather than doing encryption
 and MAC separately. <a href="https://en.wikipedia.org/wiki/Galois/Counter_Mode">AES-GCM
 scheme</a>, widely accepted for
 its high throughput, is used in the implementation of SGX Protected File
 System.</li>
-  <li><strong>Block-size nodes</strong>. The tree consists of nodes whose sizes are all equal to
+  <li><em>Block-size nodes</em>. The tree consists of nodes whose sizes are all equal to
 the size of a block on disk (4KB). Every node is encrypted before writing to
 disk and decrypted after reading from disk. There are three different types of
 node:
     <ol>
-      <li><strong>The metadata node</strong> maintains the file name as well as the encryption
+      <li><em>The metadata node</em> maintains the file name as well as the encryption
 key and MAC of the root MHT node (H<sub>0</sub>). In addition, to reduce the
 disk space consumption for small files, the metadata node also contains the
 first 3KB of user data.</li>
-      <li><strong>A MHT node</strong> stores the encryption keys and MACs
+      <li><em>A MHT node</em> stores the encryption keys and MACs
 of its child nodes.</li>
-      <li><strong>A data node</strong> stores one block of user data.</li>
+      <li><em>A data node</em> stores one block of user data.</li>
     </ol>
   </li>
-  <li><strong>Easy-to-append layout</strong>. In a classic MHT, data nodes are only linked to
+  <li><em>Easy-to-append layout</em>. In a classic MHT, data nodes are only linked to
 leaf MHT nodes; yet, in this variant of MHT, data nodes are linked to leaf MHT
 nodes as well as non-leaf MHT nodes. This makes changes to the tree trivial
 when appending new data to the end of file. Another benefit is that the on-disk
@@ -291,14 +292,14 @@ important to know when it does NOT work. Here are the major limitations that
 the users should be aware of:</p>
 
 <ul>
-  <li><strong>Limited concurrency</strong>. At any time, only a single writer enclave or
+  <li><em>Limited concurrency</em>. At any time, only a single writer enclave or
 multiple reader enclaves can open a SGX-protected file; that is, multiple
 writer enclaves could corrupt a SGX-protected file when accessing the file
 concurrently.</li>
-  <li><strong>Rollback attacks</strong>. The users cannot detect whether he has opened an old
+  <li><em>Rollback attacks</em>. The users cannot detect whether he has opened an old
 (but authenticated) version of a file. In other words, SGX Protected File
 System does not guarantee the freshness of user data.</li>
-  <li><strong>Side-channel attacks</strong>. Some seemingly-insignificant information, such as
+  <li><em>Side-channel attacks</em>. Some seemingly-insignificant information, such as
 file name, file size, access time, access pattern (e.g., which blocks are
 read/written), etc, are not protected. This information could be used by
 sophisticated attackers to gain sensitive information.</li>
